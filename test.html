@@ -514,7 +514,8 @@ class SoundManager {
              this.playTone(80, 'square', 0.5, 0.1, 'artillery');
         }
         else if (type === 'launcher') {
-            this.playTone(200, 'square', 0.4, 0.15, 'launcher');
+            // Уникальный звук ракетницы - мощный низкий звук
+            this.playTone(150, 'sawtooth', 0.6, 0.2, 'launcher');
         }
         else {
             this.playTone(300, 'triangle', 0.1, 0.05, 'turret');
@@ -541,8 +542,8 @@ const TOWERS = {
     sniper: { name: "Снайпер", cost: 120, range: 300, damage: 100, cooldown: 120, color: '#8e44ad', projectileSpeed: 15, type: 'single', upgradeCost: 250, upgradeName: "Киллер" },
     blaster: { name: "Бластер", cost: 200, range: 90, damage: 10, cooldown: 8, color: '#e67e22', projectileSpeed: 8, type: 'single', upgradeCost: 300, upgradeName: "Крио" },
     artillery: { name: "Артиллерия", cost: 300, range: 275, damage: 80, cooldown: 600, color: '#c0392b', projectileSpeed: 4, type: 'artillery', upgradeCost: 400, upgradeName: "Напалм" },
-    launcher: { name: "Ракетница", cost: 5000, range: 9999, damage: 200, cooldown: 1800, color: '#ff00ff', projectileSpeed: 3, type: 'launcher', upgradeCost: 3000, upgradeName: "Ракетница Альфа", secret: true },
-    station: { name: "Станция", cost: 10000, range: 200, damage: 150, cooldown: 900, color: '#ffff00', projectileSpeed: 5, type: 'station', upgradeCost: 5000, upgradeName: "Боевая Станция", secret: true }
+    launcher: { name: "Ракетница", cost: 800, range: 9999, damage: 500, cooldown: 15*60, color: '#1a1a1a', projectileSpeed: 5, type: 'launcher', upgradeCost: 1000, upgradeName: "Ракетница Альфа", secret: false },
+    station: { name: "Станция", cost: 1000, range: 200, damage: 150, cooldown: 900, color: '#ffff00', projectileSpeed: 5, type: 'station', upgradeCost: 5000, upgradeName: "Боевая Станция", secret: false }
 };
 
 const PATH_NODES = [
@@ -614,8 +615,11 @@ class Game {
         this.hoverTile = null;
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('boss-warning').style.display = 'none';
-        document.getElementById('btn-launcher').classList.remove('unlocked');
-        document.getElementById('btn-station').classList.remove('unlocked');
+        // TEST MODE: Все башни разблокированы
+        document.getElementById('btn-launcher').classList.add('unlocked');
+        document.getElementById('btn-station').classList.add('unlocked');
+        this.launcherUnlocked = true;
+        this.stationUnlocked = true;
         this.updateUI();
     }
 
@@ -794,16 +798,34 @@ class Game {
             p.update();
             if (p.hit) {
                 if (p.isAOE) {
-                    this.createParticles(p.x, p.y, 'orange', 15);
-                    this.audio.explosion();
-                    if (p.special && p.special.napalm) {
-                        this.napalmZones.push(new NapalmZone(p.x, p.y));
-                    }
-                    for (const e of this.enemies) {
-                        const dist = Math.sqrt((e.x - p.x)**2 + (e.y - p.y)**2);
-                        if (dist < 150) {
-                            e.applySlow(60);
-                            this.damageEnemy(e, p.damage);
+                    // Если это ракета босса - уничтожаем башню вместо врагов
+                    if (p.special && p.special.bossMissile) {
+                        let closestTower = null;
+                        let minDist = Infinity;
+                        for (const tower of this.towers) {
+                            const dist = Math.sqrt((tower.x - p.x)**2 + (tower.y - p.y)**2);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closestTower = tower;
+                            }
+                        }
+                        if (closestTower && minDist < 100) {
+                            this.towers.splice(this.towers.indexOf(closestTower), 1);
+                            this.createParticles(p.x, p.y, '#e74c3c', 50);
+                            this.audio.explosion();
+                        }
+                    } else {
+                        this.createParticles(p.x, p.y, 'orange', 15);
+                        this.audio.explosion();
+                        if (p.special && p.special.napalm) {
+                            this.napalmZones.push(new NapalmZone(p.x, p.y));
+                        }
+                        for (const e of this.enemies) {
+                            const dist = Math.sqrt((e.x - p.x)**2 + (e.y - p.y)**2);
+                            if (dist < 150) {
+                                e.applySlow(60);
+                                this.damageEnemy(e, p.damage);
+                            }
                         }
                     }
                 } else if (p.type === 'launcher') {
@@ -864,27 +886,29 @@ class Game {
                  this.destroyTowersInRadius(e.x, e.y, 80);
             }
             if (e.type === 'superboss' && e.active) {
+                // Каждые 30 секунд (1800 фреймов) пускает ракету которая разрушает 1 башню
                 if (e.rocketTimer > 0) e.rocketTimer--;
                 if (e.rocketTimer <= 0) {
-                    this.destroyTowersInRadius(e.x, e.y, 60, true);
-                    e.rocketTimer = 1500;
-                    for (let k = 0; k < 2; k++) {
-                        this.projectiles.push(new ArtilleryProjectile(e.x + Math.random() * 100 - 50, e.y + Math.random() * 100 - 50, this.baseX + Math.random() * 200 - 100, this.baseY + Math.random() * 200 - 100, 100, {}));
+                    // Находим ближайшую башню и уничтожаем её
+                    let closestTower = null;
+                    let minDist = Infinity;
+                    for (const tower of this.towers) {
+                        let dx = tower.x - e.x;
+                        let dy = tower.y - e.y;
+                        let dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestTower = tower;
+                        }
                     }
-                }
-                if (e.droneSpawner > 0) e.droneSpawner--;
-                if (e.droneSpawner <= 0) {
-                    for (let k = 0; k < 10; k++) {
-                        this.waveQueue.push({ type: 'drone', hpMult: 1 });
+
+                    if (closestTower) {
+                        // Запускаем ракету на башню
+                        this.projectiles.push(new ArtilleryProjectile(e.x, e.y, closestTower.x, closestTower.y, 9999, {bossMissile: true}));
+                        this.audio.shoot('launcher');
                     }
-                    e.droneSpawner = 1200;
-                }
-                if (e.swarmSpawner > 0) e.swarmSpawner--;
-                if (e.swarmSpawner <= 0) {
-                    for (let k = 0; k < 25; k++) {
-                        this.waveQueue.push({ type: 'swarm', hpMult: 1 });
-                    }
-                    e.swarmSpawner = 300;
+
+                    e.rocketTimer = 1800; // 30 секунд
                 }
             }
             if (e.type === 'airBoss' && e.active) {
@@ -1685,17 +1709,39 @@ class Tower {
         }
 
         if (this.isLauncher) {
-            game.launcherAmmo++;
-            if (game.launcherAmmo >= 1800 && this.cooldown <= 0) {
-                game.launcherAmmo = 0;
-                for (let k = 0; k < 4; k++) {
-                    let angle = (Math.PI * 2 / 4) * k;
-                    let tx = this.x + Math.cos(angle) * 800;
-                    let ty = this.y + Math.sin(angle) * 800;
-                    projectiles.push(new LauncherProjectile(this.x, this.y, tx, ty, this.damage, {slowZone: this.level >= 2}));
+            // Ракетница стреляет только если есть враги и волна активна
+            if (!game.isWaveActive || enemies.length === 0) {
+                return;
+            }
+
+            // Стреляет каждые 15 секунд (900 фреймов)
+            if (this.cooldown <= 0) {
+                // 4 ракеты с интервалом 1 секунда (60 фреймов)
+                if (!this.launcherRocketQueue) {
+                    this.launcherRocketQueue = 4;
+                    this.launcherRocketDelay = 0;
                 }
-                audio.shoot('launcher');
-                this.cooldown = this.cooldownMax;
+
+                if (this.launcherRocketQueue > 0) {
+                    this.launcherRocketDelay++;
+                    if (this.launcherRocketDelay >= 60) {
+                        this.launcherRocketDelay = 0;
+
+                        // Находим случайного врага
+                        let target = enemies[Math.floor(Math.random() * enemies.length)];
+                        if (target) {
+                            projectiles.push(new LauncherProjectile(this.x, this.y, target.x, target.y, this.damage, {slowZone: this.level >= 2}));
+                            audio.shoot('launcher');
+                        }
+
+                        this.launcherRocketQueue--;
+                    }
+                }
+
+                // После 4 ракет - перезарядка на 15 секунд
+                if (this.launcherRocketQueue === 0) {
+                    this.cooldown = this.cooldownMax;
+                }
             }
             return;
         }
@@ -1878,10 +1924,19 @@ class Tower {
                  ctx.fillRect(-5, -5, 10, 10);
             }
         } else if (this.typeKey === 'launcher') {
-            ctx.fillStyle = "#ff00ff";
-            ctx.fillRect(-10, -10, 20, 20);
-            ctx.fillStyle = "#ffff00";
-            ctx.beginPath(); ctx.arc(0, 5, 5, 0, Math.PI*2); ctx.fill();
+            // Черный корпус ракетницы
+            ctx.fillStyle = "#1a1a1a";
+            ctx.fillRect(-12, -12, 24, 24);
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-12, -12, 24, 24);
+
+            // 4 красных ракеты внутри
+            ctx.fillStyle = "#e74c3c";
+            ctx.beginPath(); ctx.arc(-5, -5, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(5, -5, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-5, 5, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(5, 5, 3, 0, Math.PI*2); ctx.fill();
         } else if (this.typeKey === 'station') {
             ctx.fillStyle = "#ffff00";
             ctx.fillRect(-12, -12, 24, 24);
