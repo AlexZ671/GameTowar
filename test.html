@@ -1312,7 +1312,7 @@ class Enemy {
         this.baseX = baseX;
         this.baseY = baseY;
 
-        this.rocketTimer = 1500;
+        this.rocketTimer = 1800; // Ждет 30 секунд перед первым выстрелом
         this.droneSpawner = 1200;
         this.swarmSpawner = 300;
         this.airBossTimer = 3600;
@@ -1386,7 +1386,7 @@ class Enemy {
                 break;
             case 'superboss':
                 this.baseSpeed = 0.3;
-                this.maxHp = 6000 * hpMult;
+                this.maxHp = 12000 * hpMult;
                 this.color = '#17202a';
                 this.radius = 35;
                 this.reward = 1000;
@@ -1700,11 +1700,14 @@ class Tower {
         if (this.animRecoil > 0) this.animRecoil--;
 
         if (this.isStation) {
-            this.stationSpawner++;
-            if (this.stationSpawner >= 900) {
-                this.stationSpawner = 0;
-                let drone = new StationDrone(this.x, this.y, this.level);
-                game.stationDrones.push(drone);
+            // Станция спаунит дронов только когда волна активна
+            if (game.isWaveActive) {
+                this.stationSpawner++;
+                if (this.stationSpawner >= 900) { // 15 секунд
+                    this.stationSpawner = 0;
+                    let drone = new StationDrone(this.x, this.y, this.level);
+                    game.stationDrones.push(drone);
+                }
             }
         }
 
