@@ -1581,6 +1581,7 @@ class Tower {
         this.animRecoil = 0;
         this.totalInvested = config.cost;
         this.stationSpawner = 0;
+        this.currentTarget = null;
     }
 
     upgrade(cost) {
@@ -1618,23 +1619,41 @@ class Tower {
             return;
         }
 
-        let target = null;
-        let minDist = Infinity;
-
-        for (const enemy of enemies) {
-            if (enemy.type === 'drone' && this.typeKey !== 'sniper') continue;
-
-            let dx = enemy.x - this.x;
-            let dy = enemy.y - this.y;
+        // Проверяем, живая ли текущая цель и в диапазоне
+        if (this.currentTarget && this.currentTarget.active) {
+            let dx = this.currentTarget.x - this.x;
+            let dy = this.currentTarget.y - this.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
-
-            if (dist <= this.range && dist < minDist) {
-                minDist = dist;
-                target = enemy;
+            if (dist > this.range) {
+                this.currentTarget = null;
             }
+        } else {
+            this.currentTarget = null;
         }
 
-        if (target) {
+        // Если нет текущей цели, ищем новую с гистерезисом
+        if (!this.currentTarget) {
+            let target = null;
+            let minDist = Infinity;
+
+            for (const enemy of enemies) {
+                if (enemy.type === 'drone' && this.typeKey !== 'sniper') continue;
+
+                let dx = enemy.x - this.x;
+                let dy = enemy.y - this.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (dist <= this.range && dist < minDist) {
+                    minDist = dist;
+                    target = enemy;
+                }
+            }
+
+            this.currentTarget = target;
+        }
+
+        if (this.currentTarget) {
+            let target = this.currentTarget;
             let dx = target.x - this.x;
             let dy = target.y - this.y;
             this.targetAngle = Math.atan2(dy, dx);
