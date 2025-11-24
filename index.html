@@ -1577,6 +1577,7 @@ class Tower {
         this.isLauncher = config.type === 'launcher';
         this.isStation = config.type === 'station';
         this.angle = 0;
+        this.targetAngle = 0;
         this.animRecoil = 0;
         this.totalInvested = config.cost;
         this.stationSpawner = 0;
@@ -1636,7 +1637,15 @@ class Tower {
         if (target) {
             let dx = target.x - this.x;
             let dy = target.y - this.y;
-            this.angle = Math.atan2(dy, dx);
+            this.targetAngle = Math.atan2(dy, dx);
+
+            // Плавный поворот к цели
+            let angleDiff = this.targetAngle - this.angle;
+            // Найдем кратчайший путь поворота
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            // Ограничим скорость поворота
+            this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), 0.15);
 
             if (this.cooldown <= 0) {
                 this.animRecoil = 5;
