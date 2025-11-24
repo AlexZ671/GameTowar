@@ -609,7 +609,8 @@ class Game {
         document.getElementById('boss-warning').style.display = 'none';
         // TEST MODE: Все башни разблокированы
         document.getElementById('btn-launcher').classList.add('unlocked');
-        document.getElementById('btn-station').classList.add('unlocked');
+        const stationBtn = document.getElementById('btn-station');
+        if (stationBtn) stationBtn.classList.add('unlocked');
         this.launcherUnlocked = true;
         this.stationUnlocked = true;
         this.updateUI();
@@ -936,7 +937,8 @@ class Game {
                         this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: СТАНЦИЯ ДРОНОВ!");
                         this.createParticles(e.x, e.y, '#ffff00', 100);
                         this.stationUnlocked = true;
-                        document.getElementById('btn-station').classList.add('unlocked');
+                        const stationBtn = document.getElementById('btn-station');
+                        if (stationBtn) stationBtn.classList.add('unlocked');
                     }
                     if(e.type.includes('boss')) {
                         this.createParticles(e.x, e.y, '#e74c3c', 50);
