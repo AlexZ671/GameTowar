@@ -604,6 +604,7 @@ class Game {
         this.burnedZones = [];
         this.launcherAmmo = 0;
         this.stationDrones = [];
+        this.mines = [];
         this.launcherUnlocked = false;
         this.stationUnlocked = false;
 
@@ -616,7 +617,8 @@ class Game {
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('boss-warning').style.display = 'none';
         // TEST MODE: Все башни разблокированы
-        document.getElementById('btn-launcher').classList.add('unlocked');
+        const launcherBtn = document.getElementById('btn-launcher');
+        if (launcherBtn) launcherBtn.classList.add('unlocked');
         const stationBtn = document.getElementById('btn-station');
         if (stationBtn) stationBtn.classList.add('unlocked');
         this.launcherUnlocked = true;
@@ -788,6 +790,22 @@ class Game {
                 this.showToast("Волна пройдена! +$40");
                 this.money += 40;
                 this.launcherAmmo = 0;
+
+                // Reset blaster rush stacks at wave end
+                for (const tower of this.towers) {
+                    if (tower.typeKey === 'blaster') {
+                        tower.blasterRushStacks = 0;
+                    }
+                }
+
+                // Clear and regenerate mines for miner towers
+                this.mines = [];
+                for (const tower of this.towers) {
+                    if (tower.typeKey === 'miner') {
+                        tower.placeMines(this.waypoints, this);
+                    }
+                }
+
                 this.updateUI();
             }
         }
@@ -853,9 +871,31 @@ class Game {
                             }
                         }
                         if (p.special && p.special.slow) p.target.applySlow(120);
-                        this.damageEnemy(p.target, dmg);
+
+                        // Sniper Level 3: 30% chance for explosion with splash damage
+                        if (p.special && p.special.sniperExplosion && Math.random() < 0.3) {
+                            this.showFloatingText("EXPLOSION!", p.target.x, p.target.y, "#f1c40f");
+                            this.createParticles(p.x, p.y, '#f1c40f', 12);
+                            this.audio.explosion();
+
+                            // Damage target
+                            this.damageEnemy(p.target, dmg);
+
+                            // Splash damage to nearby enemies
+                            for (const e of this.enemies) {
+                                if (e !== p.target) {
+                                    const dist = Math.sqrt((e.x - p.x)**2 + (e.y - p.y)**2);
+                                    if (dist < 120) {
+                                        this.damageEnemy(e, dmg * 0.5);
+                                    }
+                                }
+                            }
+                        } else {
+                            this.damageEnemy(p.target, dmg);
+                        }
+
                         this.createParticles(p.x, p.y, p.color, isCrit ? 8 : 3);
-                        if (!isCrit) this.audio.hit();
+                        if (!isCrit && !(p.special && p.special.sniperExplosion)) this.audio.hit();
                     }
                 }
                 this.projectiles.splice(i, 1);
@@ -878,6 +918,33 @@ class Game {
                 }
             }
             if (z.life <= 0) this.napalmZones.splice(i, 1);
+        }
+
+        // Update mines and handle explosions
+        for (let i = this.mines.length - 1; i >= 0; i--) {
+            const mine = this.mines[i];
+            const exploded = mine.update(this.enemies);
+
+            if (exploded && !mine.hasExploded) {
+                // Mine explodes and damages nearby enemies
+                for (const e of this.enemies) {
+                    const dist = Math.sqrt((e.x - mine.x)**2 + (e.y - mine.y)**2);
+                    if (dist < 80) {
+                        this.damageEnemy(e, mine.damage);
+                        // Apply slow if level 2+
+                        if (mine.slowZone) {
+                            e.applySlow(180); // 3 seconds
+                        }
+                    }
+                }
+                this.createParticles(mine.x, mine.y, '#e74c3c', 10);
+                this.audio.explosion();
+            }
+
+            // Remove mines after they explode or if mine disappeared
+            if (mine.hasExploded || !mine.active) {
+                this.mines.splice(i, 1);
+            }
         }
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -935,11 +1002,24 @@ class Game {
             } else if (!e.active) {
                 if (e.hp <= 0) {
                     this.money += e.reward;
+
+                    // Blaster Level 3: Apply rush to nearby blasters when they kill enemies
+                    for (const tower of this.towers) {
+                        if (tower.typeKey === 'blaster' && tower.level === 3) {
+                            const dist = Math.sqrt((tower.x - e.x)**2 + (tower.y - e.y)**2);
+                            if (dist < tower.range * 1.5) {
+                                tower.blasterRushStacks++;
+                                if (tower.blasterRushStacks > 10) tower.blasterRushStacks = 10; // Cap at 10 stacks
+                            }
+                        }
+                    }
+
                     if (e.type === 'superboss') {
                         this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: РАКЕТНИЦА!");
                         this.createParticles(e.x, e.y, '#ff00ff', 100);
                         this.launcherUnlocked = true;
-                        document.getElementById('btn-launcher').classList.add('unlocked');
+                        const launcherBtn = document.getElementById('btn-launcher');
+                        if (launcherBtn) launcherBtn.classList.add('unlocked');
                     }
                     if (e.type === 'airBoss') {
                         this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: СТАНЦИЯ ДРОНОВ!");
@@ -1042,6 +1122,7 @@ class Game {
         }
 
         this.napalmZones.forEach(z => z.draw(this.ctx));
+        this.mines.forEach(m => m.draw(this.ctx));
         this.towers.forEach(t => t.draw(this.ctx, t === this.selectedTowerInstance));
         this.enemies.forEach(e => e.draw(this.ctx));
         this.projectiles.forEach(p => p.draw(this.ctx));
@@ -1145,7 +1226,14 @@ class Game {
             const towerConfig = TOWERS[this.selectedTowerType];
             if (this.money >= towerConfig.cost) {
                 this.money -= towerConfig.cost;
-                this.towers.push(new Tower(c, r, this.selectedTowerType, towerConfig));
+                const newTower = new Tower(c, r, this.selectedTowerType, towerConfig);
+                this.towers.push(newTower);
+
+                // Place mines if this is a Miner tower
+                if (this.selectedTowerType === 'miner') {
+                    newTower.placeMines(this.waypoints, this);
+                }
+
                 this.grid[r][c] = 2;
 
                 this.audio.build();
@@ -1162,7 +1250,7 @@ class Game {
     upgradeSelectedTower() {
         if(!this.selectedTowerInstance || this.isWaveActive) return;
         const t = this.selectedTowerInstance;
-        if(t.level >= 2) {
+        if(t.level >= 3) {
              this.showToast("Максимальный уровень!");
              return;
         }
@@ -1243,12 +1331,21 @@ class Game {
             const upgCost = conf.upgradeCost;
             const sellPrice = Math.floor(t.totalInvested * 0.5);
 
-            document.getElementById('upg-title').innerText = t.level === 1 ? conf.name : conf.upgradeName;
-            document.getElementById('upg-desc').innerText = t.level === 1 ? `Апгрейд: ${conf.upgradeName}` : "МАКС. УРОВЕНЬ";
+            // Display tower info based on level
+            if (t.level === 1) {
+                document.getElementById('upg-title').innerText = conf.name;
+                document.getElementById('upg-desc').innerText = `Апгрейд: ${conf.upgradeName}`;
+            } else if (t.level === 2) {
+                document.getElementById('upg-title').innerText = conf.upgradeName;
+                document.getElementById('upg-desc').innerText = `Апгрейд: ${conf.upgrade3Name}`;
+            } else {
+                document.getElementById('upg-title').innerText = conf.upgrade3Name;
+                document.getElementById('upg-desc').innerText = "МАКС. УРОВЕНЬ";
+            }
             document.getElementById('sell-cost').innerText = sellPrice + "$";
 
             const btn = document.getElementById('btn-do-upgrade');
-            if (t.level >= 2) {
+            if (t.level >= 3) {
                 btn.classList.add('disabled');
                 document.getElementById('upg-cost').innerText = "---";
             } else {
@@ -1689,16 +1786,65 @@ class Tower {
         this.totalInvested = config.cost;
         this.stationSpawner = 0;
         this.currentTarget = null;
+        this.blasterRushStacks = 0; // For blaster level 3: +10% speed per stack
     }
 
     upgrade(cost) {
-        this.level = 2;
-        this.damage *= 1.5;
+        if (this.level === 1) {
+            this.level = 2;
+            this.damage *= 1.5;
+        } else if (this.level === 2) {
+            this.level = 3;
+            // Level 3 - different bonuses per tower type
+            if (this.typeKey === 'turret') {
+                // Турель: just gets level 3 marker
+            } else if (this.typeKey === 'sniper') {
+                // Снайпер: gets level 3 marker
+            } else if (this.typeKey === 'blaster') {
+                // Бластер: gets level 3 marker
+            } else if (this.typeKey === 'artillery') {
+                // Артиллерия становится Ракетницей
+                this.damage *= 0.5; // Half damage for 4 rockets
+            } else if (this.typeKey === 'miner') {
+                // Минёр: +25% damage
+                this.damage *= 1.25;
+            }
+        }
         this.totalInvested += cost;
     }
 
+    placeMines(waypoints, game) {
+        // Find closest waypoint to this tower
+        let closestIdx = 0;
+        let closestDist = Infinity;
+
+        for (let i = 0; i < waypoints.length; i++) {
+            const dist = Math.sqrt((this.x - waypoints[i].x)**2 + (this.y - waypoints[i].y)**2);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestIdx = i;
+            }
+        }
+
+        // Place 3 mines along the path
+        const startIdx = Math.max(0, closestIdx - 1);
+        const mineCount = 3;
+
+        for (let i = 0; i < mineCount && startIdx + i < waypoints.length; i++) {
+            const wp = waypoints[startIdx + i];
+            const mine = new Mine(wp.x, wp.y, this.level, this.damage);
+            game.mines.push(mine);
+        }
+    }
+
     update(enemies, projectiles, audio, game) {
-        if (this.cooldown > 0) this.cooldown--;
+        // Blaster Level 3: Apply rush stacks to cooldown reduction
+        let cooldownReduction = 1;
+        if (this.typeKey === 'blaster' && this.level === 3 && this.blasterRushStacks > 0) {
+            cooldownReduction = 1 + (this.blasterRushStacks * 0.1); // +10% per stack
+        }
+
+        if (this.cooldown > 0) this.cooldown -= cooldownReduction;
         if (this.animRecoil > 0) this.animRecoil--;
 
         if (this.isStation) {
@@ -1748,6 +1894,11 @@ class Tower {
                     this.cooldown = this.cooldownMax;
                 }
             }
+            return;
+        }
+
+        // Miner towers don't shoot, they only place mines at wave start
+        if (this.typeKey === 'miner') {
             return;
         }
 
@@ -1838,24 +1989,54 @@ class Tower {
                 this.animRecoil = 5;
                 let special = {};
 
-                if (this.typeKey === 'sniper' && this.level >= 2) special.instantKill = true;
-                if (this.typeKey === 'blaster' && this.level >= 2) special.slow = true;
-                if (this.typeKey === 'artillery' && this.level >= 2) special.napalm = true;
+                if (this.typeKey === 'sniper') {
+                    if (this.level === 2) special.instantKill = true;
+                    if (this.level === 3) special.sniperExplosion = true;
+                }
+                if (this.typeKey === 'blaster') {
+                    if (this.level >= 2) special.slow = true;
+                    if (this.level === 3) special.blasterRush = true;
+                }
+                if (this.typeKey === 'artillery') {
+                    if (this.level === 2) special.napalm = true;
+                    if (this.level === 3) special.rocketVolley = true;
+                }
 
                 if (this.isArtillery) {
-                    let offsetX = (Math.random() - 0.5) * 200;
-                    let offsetY = (Math.random() - 0.5) * 200;
-                    if (Math.random() > 0.7) {
-                        offsetX = (Math.random() - 0.5) * 400;
-                        offsetY = (Math.random() - 0.5) * 400;
+                    if (this.level === 3 && special.rocketVolley) {
+                        // 4 rockets with better accuracy (smaller offsets)
+                        for (let i = 0; i < 4; i++) {
+                            let offsetX = (Math.random() - 0.5) * 100;
+                            let offsetY = (Math.random() - 0.5) * 100;
+                            projectiles.push(new ArtilleryProjectile(this.x, this.y, target.x + offsetX, target.y + offsetY, this.damage, special));
+                        }
+                    } else {
+                        let offsetX = (Math.random() - 0.5) * 200;
+                        let offsetY = (Math.random() - 0.5) * 200;
+                        if (Math.random() > 0.7) {
+                            offsetX = (Math.random() - 0.5) * 400;
+                            offsetY = (Math.random() - 0.5) * 400;
+                        }
+                        projectiles.push(new ArtilleryProjectile(this.x, this.y, target.x + offsetX, target.y + offsetY, this.damage, special));
                     }
-                    projectiles.push(new ArtilleryProjectile(this.x, this.y, target.x + offsetX, target.y + offsetY, this.damage, special));
                 }
-                else if (this.typeKey === 'turret' && this.level >= 2) {
-                    let offX = Math.cos(this.angle + Math.PI/2) * 5;
-                    let offY = Math.sin(this.angle + Math.PI/2) * 5;
-                    projectiles.push(new Projectile(this.x + offX, this.y + offY, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
-                    projectiles.push(new Projectile(this.x - offX, this.y - offY, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                else if (this.typeKey === 'turret') {
+                    // Level 2: 2 barrels | Level 3: 3 barrels
+                    if (this.level === 1) {
+                        projectiles.push(new Projectile(this.x, this.y, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                    } else if (this.level === 2) {
+                        let offX = Math.cos(this.angle + Math.PI/2) * 5;
+                        let offY = Math.sin(this.angle + Math.PI/2) * 5;
+                        projectiles.push(new Projectile(this.x + offX, this.y + offY, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                        projectiles.push(new Projectile(this.x - offX, this.y - offY, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                    } else if (this.level === 3) {
+                        // 3 barrels
+                        projectiles.push(new Projectile(this.x, this.y, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                        let offX = Math.cos(this.angle + Math.PI/2) * 8;
+                        let offY = Math.sin(this.angle + Math.PI/2) * 8;
+                        projectiles.push(new Projectile(this.x + offX, this.y + offY, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                        projectiles.push(new Projectile(this.x - offX, this.y - offY, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
+                    }
                 } else {
                     projectiles.push(new Projectile(this.x, this.y, target, this.damage, this.projSpeed, this.color, special, this.isAOE));
                 }
@@ -1947,6 +2128,14 @@ class Tower {
             ctx.fillRect(-12, -12, 24, 24);
             ctx.fillStyle = "#ff6600";
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+        } else if (this.typeKey === 'miner') {
+            // Miner tower: dark circle with mine symbols
+            ctx.fillRect(-12, -12, 24, 24);
+            ctx.fillStyle = "#2c3e50";
+            // Draw 3 mine dots inside
+            ctx.beginPath(); ctx.arc(-6, -6, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(6, 6, 3, 0, Math.PI*2); ctx.fill();
         }
 
         ctx.restore();
@@ -1969,6 +2158,7 @@ class Projectile {
 
         if (special.slow) this.color = "#3498db";
         if (special.instantKill) this.color = "#e74c3c";
+        if (special.sniperExplosion) this.color = "#f1c40f";
         if (special.napalm) this.color = "#d35400";
     }
 
@@ -2174,6 +2364,67 @@ class NapalmZone {
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
         ctx.fill();
         ctx.globalAlpha = 1.0;
+    }
+}
+
+class Mine {
+    constructor(x, y, level = 1, towerDamage = 120) {
+        this.x = x;
+        this.y = y;
+        this.level = level;
+        this.radius = 25; // Detection radius
+        this.baseRadius = 25;
+        this.active = true;
+
+        // Calculate damage based on level
+        this.damage = towerDamage;
+        if (level === 3) {
+            this.damage *= 1.25; // +25% for level 3
+        }
+
+        this.hp = 3; // Mines take 3 hits to destroy
+        this.slowZone = level >= 2; // Level 2+ creates slow zones
+        this.hasExploded = false;
+    }
+
+    update(enemies) {
+        // Check for enemy collisions
+        for (const enemy of enemies) {
+            if (enemy.active) {
+                const dist = Math.sqrt((enemy.x - this.x)**2 + (enemy.y - this.y)**2);
+                if (dist < this.radius + 15 && !this.hasExploded) {
+                    // Enemy touched the mine - trigger explosion
+                    this.hasExploded = true;
+                    return true; // Signal explosion
+                }
+            }
+        }
+        return false;
+    }
+
+    draw(ctx) {
+        if (!this.active) return;
+
+        // Mine body (dark circle)
+        ctx.fillStyle = "#2c3e50";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 12, 0, Math.PI*2);
+        ctx.fill();
+
+        // Mine details
+        ctx.fillStyle = "#e74c3c";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 6, 0, Math.PI*2);
+        ctx.fill();
+
+        // Draw slow indicator for level 2+
+        if (this.slowZone) {
+            ctx.strokeStyle = "#3498db";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 18, 0, Math.PI*2);
+            ctx.stroke();
+        }
     }
 }
 
