@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Defense: Hardcore Edition</title>
+    <title>Pixel Defense: Hardcore Edition - Enhanced</title>
     <style>
         :root {
             --bg-color: #2c3e50;
@@ -93,6 +93,7 @@
         #build-controls {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         #upgrade-controls {
@@ -140,6 +141,12 @@
             opacity: 0.5;
             cursor: not-allowed;
             filter: grayscale(100%);
+        }
+
+        .tower-btn.secret {
+            background: linear-gradient(135deg, #ff6b00, #ffaa00);
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
         }
 
         .tower-icon {
@@ -274,6 +281,19 @@
             display: none;
         }
 
+        .wave-disabled-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 5;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.1); opacity: 0.8; }
@@ -286,7 +306,7 @@
 
     <h1>
         <svg style="width:32px;height:32px;fill:var(--highlight)" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.5L18.5 20h-13L12 5.5zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>
-        Pixel Defense: Hardcore
+        Pixel Defense: Hardcore Edition
     </h1>
 
     <div id="game-container">
@@ -344,10 +364,26 @@
                     <svg viewBox="0 0 24 24"><path d="M7 10l5-8 5 8H7zm1 2h8v8h-8v-8z"/></svg>
                 </div>
                 <span>Арта</span>
-                <span style="color: #ffd700">250$</span>
+                <span style="color: #ffd700">300$</span>
             </div>
 
-            <button onclick="game.startNextWave()" id="next-wave-btn" style="padding: 5px 10px; background: #2ecc71; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; font-size: 12px; box-shadow: 0 4px 0 #27ae60; transition: all 0.1s; width: 60px;">
+            <div class="tower-btn secret" id="btn-launcher" onclick="game.selectTower('launcher')">
+                <div class="tower-icon" style="background: linear-gradient(45deg, #ff6b00, #ff00ff); border-radius: 4px;">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2z" fill="white"/></svg>
+                </div>
+                <span>🚀 Ракетница</span>
+                <span style="color: #ff00ff">5000$</span>
+            </div>
+
+            <div class="tower-btn secret" id="btn-station" onclick="game.selectTower('station')">
+                <div class="tower-icon" style="background: linear-gradient(45deg, #ffff00, #ff6600); border-radius: 50%;">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="white"/></svg>
+                </div>
+                <span>🛰️ Станция</span>
+                <span style="color: #ffff00">10000$</span>
+            </div>
+
+            <button onclick="game.startNextWave()" id="next-wave-btn" style="padding: 5px 10px; background: #2ecc71; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; font-size: 12px; box-shadow: 0 4px 0 #27ae60; transition: all 0.1s; width: 80px;">
                 ▶ СТАРТ
             </button>
         </div>
@@ -417,6 +453,9 @@ class SoundManager {
         else if (type === 'artillery') {
              this.playTone(80, 'square', 0.5, 0.1, 'artillery');
         }
+        else if (type === 'launcher') {
+            this.playTone(200, 'square', 0.4, 0.15, 'launcher');
+        }
         else {
             this.playTone(300, 'triangle', 0.1, 0.05, 'turret');
         }
@@ -441,7 +480,9 @@ const TOWERS = {
     turret: { name: "Турель", cost: 50, range: 120, damage: 20, cooldown: 40, color: '#34495e', projectileSpeed: 6, type: 'single', upgradeCost: 100, upgradeName: "Двойная Турель" },
     sniper: { name: "Снайпер", cost: 120, range: 300, damage: 100, cooldown: 120, color: '#8e44ad', projectileSpeed: 15, type: 'single', upgradeCost: 250, upgradeName: "Киллер" },
     blaster: { name: "Бластер", cost: 200, range: 90, damage: 10, cooldown: 8, color: '#e67e22', projectileSpeed: 8, type: 'single', upgradeCost: 300, upgradeName: "Крио" },
-    artillery: { name: "Артиллерия", cost: 250, range: 275, damage: 80, cooldown: 150, color: '#c0392b', projectileSpeed: 4, type: 'artillery', upgradeCost: 400, upgradeName: "Напалм" }
+    artillery: { name: "Артиллерия", cost: 300, range: 275, damage: 80, cooldown: 600, color: '#c0392b', projectileSpeed: 4, type: 'artillery', upgradeCost: 400, upgradeName: "Напалм" },
+    launcher: { name: "Ракетница", cost: 5000, range: 9999, damage: 200, cooldown: 1800, color: '#ff00ff', projectileSpeed: 3, type: 'launcher', upgradeCost: 3000, upgradeName: "Ракетница Альфа", secret: true },
+    station: { name: "Станция", cost: 10000, range: 200, damage: 150, cooldown: 900, color: '#ffff00', projectileSpeed: 5, type: 'station', upgradeCost: 5000, upgradeName: "Боевая Станция", secret: true }
 };
 
 const PATH_NODES = [
@@ -473,7 +514,7 @@ class Game {
     }
 
     init() {
-        this.money = 300;
+        this.money = 150;
         this.lives = 20;
         this.wave = 0;
         this.isPlaying = true;
@@ -487,6 +528,9 @@ class Game {
         this.floatingTexts = [];
         this.waveQueue = [];
         this.spawnTimer = 0;
+        this.burnedZones = [];
+        this.launcherAmmo = 0;
+        this.stationDrones = [];
 
         this.grid = [];
         this.buildMap();
@@ -552,10 +596,16 @@ class Game {
         this.wave++;
         this.isWaveActive = true;
         this.spawnTimer = 0;
+        this.launcherAmmo = 0;
 
         this.waveQueue = [];
 
-        if (this.wave === 25) {
+        if (this.wave === 50) {
+             this.showToast(`🚁 ЛЕТАЮЩИЙ БОСС!`);
+             document.getElementById('boss-warning').style.display = 'inline';
+             this.waveQueue.push({ type: 'airBoss', hpMult: 1 });
+        }
+        else if (this.wave === 25) {
              this.showToast(`☠️ СУПЕР БОСС!`);
              document.getElementById('boss-warning').style.display = 'inline';
              this.waveQueue.push({ type: 'superboss', hpMult: 1 });
@@ -567,7 +617,7 @@ class Game {
         } else {
             document.getElementById('boss-warning').style.display = 'none';
 
-            let baseCount = 8 + Math.floor(this.wave * 2.5);
+            let baseCount = 16 + Math.floor(this.wave * 5);
             let hpMult = 1 + (this.wave * 0.3);
 
             for (let i = 0; i < baseCount; i++) {
@@ -580,6 +630,7 @@ class Game {
                 if (this.wave > 8 && r > 0.85 && r <= 0.9) type = 'armored';
                 if (this.wave > 6 && r > 0.95) type = 'drone';
                 if (this.wave > 10 && i % 15 === 0) type = 'buffer';
+                if (this.wave > 10 && Math.random() < 0.15 && (this.wave % 3 === 0)) type = 'disruptor';
 
                 this.waveQueue.push({ type: type, hpMult: hpMult });
             }
@@ -594,13 +645,17 @@ class Game {
         this.updateUI();
     }
 
-    destroyTowersInRadius(x, y, radius) {
+    destroyTowersInRadius(x, y, radius, createBurnZone = true) {
         let destroyed = 0;
         for (let i = this.towers.length - 1; i >= 0; i--) {
             const t = this.towers[i];
             const dist = Math.sqrt((t.x - x)**2 + (t.y - y)**2);
             if (dist < radius) {
                 this.grid[t.r][t.c] = 0;
+                if (createBurnZone) {
+                    this.burnedZones.push({x: t.x, y: t.y, r: t.r, c: t.c, life: 1200});
+                    this.grid[t.r][t.c] = 4;
+                }
                 this.createParticles(t.x, t.y, '#7f8c8d', 10);
                 this.createParticles(t.x, t.y, '#e74c3c', 10);
                 this.towers.splice(i, 1);
@@ -619,11 +674,29 @@ class Game {
     update() {
         if (!this.isPlaying) return;
 
+        for (let i = this.burnedZones.length - 1; i >= 0; i--) {
+            this.burnedZones[i].life--;
+            if (this.burnedZones[i].life <= 0) {
+                let z = this.burnedZones[i];
+                this.grid[z.r][z.c] = 0;
+                this.burnedZones.splice(i, 1);
+            }
+        }
+
+        for (let i = this.stationDrones.length - 1; i >= 0; i--) {
+            const drone = this.stationDrones[i];
+            drone.update();
+            if (drone.shouldReturn) {
+                this.stationDrones.splice(i, 1);
+            }
+        }
+
         if (this.isWaveActive) {
             this.spawnTimer++;
             let spawnRate = 25;
             if (this.waveQueue[0] && this.waveQueue[0].type === 'swarm') spawnRate = 8;
             if (this.waveQueue[0] && this.waveQueue[0].type === 'boss') spawnRate = 120;
+            if (this.waveQueue[0] && this.waveQueue[0].type === 'airBoss') spawnRate = 1;
 
             if (this.spawnTimer > spawnRate && this.waveQueue.length > 0) {
                 const enemyData = this.waveQueue.shift();
@@ -631,13 +704,14 @@ class Game {
                 this.spawnTimer = 0;
             } else if (this.waveQueue.length === 0 && this.enemies.length === 0) {
                 this.isWaveActive = false;
-                this.showToast("Волна пройдена! +$80");
-                this.money += 80;
+                this.showToast("Волна пройдена! +$40");
+                this.money += 40;
+                this.launcherAmmo = 0;
                 this.updateUI();
             }
         }
 
-        this.towers.forEach(t => t.update(this.enemies, this.projectiles, this.audio));
+        this.towers.forEach(t => t.update(this.enemies, this.projectiles, this.audio, this));
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
@@ -656,12 +730,23 @@ class Game {
                             this.damageEnemy(e, p.damage);
                         }
                     }
+                } else if (p.type === 'launcher') {
+                    for (const e of this.enemies) {
+                        const dist = Math.sqrt((e.x - p.x)**2 + (e.y - p.y)**2);
+                        if (dist < 200) {
+                            this.damageEnemy(e, p.damage);
+                        }
+                    }
+                    this.createParticles(p.x, p.y, '#ff00ff', 30);
+                    if (p.special && p.special.slowZone) {
+                        this.napalmZones.push(new NapalmZone(p.x, p.y, '#000000', 10));
+                    }
                 } else {
                     if (p.target && p.target.active) {
                         let dmg = p.damage;
                         let isCrit = false;
                         if (p.special && p.special.instantKill) {
-                            if (p.target.type !== 'boss' && p.target.type !== 'superboss' && Math.random() < 0.3) {
+                            if (p.target.type !== 'boss' && p.target.type !== 'superboss' && p.target.type !== 'airBoss' && Math.random() < 0.3) {
                                 dmg = p.target.hp;
                                 isCrit = true;
                                 this.showFloatingText("CRIT!", p.target.x, p.target.y, "#e74c3c");
@@ -686,7 +771,11 @@ class Game {
              for (const e of this.enemies) {
                 const dist = Math.sqrt((e.x - z.x)**2 + (e.y - z.y)**2);
                 if (dist < z.radius) {
-                    e.applyBurn();
+                    if (z.slowZone) {
+                        e.applySlow(300);
+                    } else {
+                        e.applyBurn();
+                    }
                 }
             }
             if (z.life <= 0) this.napalmZones.splice(i, 1);
@@ -698,11 +787,44 @@ class Game {
             if (!e.active && e.type === 'exploder' && e.hp <= 0) {
                  this.destroyTowersInRadius(e.x, e.y, 80);
             }
-            if (e.type === 'superboss' && e.active && Math.random() < 0.005) {
-                 this.destroyTowersInRadius(e.x, e.y, 60);
+            if (e.type === 'superboss' && e.active) {
+                if (e.rocketTimer > 0) e.rocketTimer--;
+                if (e.rocketTimer <= 0) {
+                    this.destroyTowersInRadius(e.x, e.y, 60, true);
+                    e.rocketTimer = 1500;
+                    for (let k = 0; k < 2; k++) {
+                        this.projectiles.push(new ArtilleryProjectile(e.x + Math.random() * 100 - 50, e.y + Math.random() * 100 - 50, this.baseX + Math.random() * 200 - 100, this.baseY + Math.random() * 200 - 100, 100, {}));
+                    }
+                }
+                if (e.droneSpawner > 0) e.droneSpawner--;
+                if (e.droneSpawner <= 0) {
+                    for (let k = 0; k < 10; k++) {
+                        this.waveQueue.push({ type: 'drone', hpMult: 1 });
+                    }
+                    e.droneSpawner = 1200;
+                }
+                if (e.swarmSpawner > 0) e.swarmSpawner--;
+                if (e.swarmSpawner <= 0) {
+                    for (let k = 0; k < 25; k++) {
+                        this.waveQueue.push({ type: 'swarm', hpMult: 1 });
+                    }
+                    e.swarmSpawner = 300;
+                }
+            }
+            if (e.type === 'airBoss' && e.active) {
+                if (e.missileTimer > 0) e.missileTimer--;
+                if (e.missileTimer <= 0) {
+                    for (let k = 0; k < 30; k++) {
+                        let px = e.x + Math.random() * 400 - 200;
+                        let py = e.y + Math.random() * 400 - 200;
+                        this.projectiles.push(new AirMissile(e.x, e.y, px, py, 50));
+                    }
+                    e.missileTimer = 1800;
+                }
             }
             if (e.reachedBase) {
-                let dmg = (e.type === 'boss' || e.type === 'superboss') ? 10 : 1;
+                let dmg = (e.type === 'boss' || e.type === 'superboss' || e.type === 'airBoss') ? 10 : 1;
+                if (e.type === 'airBoss') dmg = 20;
                 this.lives -= dmg;
                 this.audio.error();
                 this.enemies.splice(i, 1);
@@ -712,6 +834,14 @@ class Game {
             } else if (!e.active) {
                 if (e.hp <= 0) {
                     this.money += e.reward;
+                    if (e.type === 'superboss') {
+                        this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: РАКЕТНИЦА!");
+                        this.createParticles(e.x, e.y, '#ff00ff', 100);
+                    }
+                    if (e.type === 'airBoss') {
+                        this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: СТАНЦИЯ ДРОНОВ!");
+                        this.createParticles(e.x, e.y, '#ffff00', 100);
+                    }
                     if(e.type.includes('boss')) {
                         this.createParticles(e.x, e.y, '#e74c3c', 50);
                     } else {
@@ -736,6 +866,10 @@ class Game {
     damageEnemy(enemy, amount) {
         if (enemy.invulnerable) {
             this.showFloatingText("Block", enemy.x, enemy.y, "white");
+            return;
+        }
+        if (enemy.disabled) {
+            this.showFloatingText("DISABLED", enemy.x, enemy.y, "#3498db");
             return;
         }
         enemy.takeDamage(amount);
@@ -770,6 +904,10 @@ class Game {
                     this.ctx.moveTo(x+TILE_SIZE, y); this.ctx.lineTo(x, y+TILE_SIZE);
                     this.ctx.stroke();
                 }
+                if (this.grid[r][c] === 4) {
+                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                    this.ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                }
             }
         }
 
@@ -802,6 +940,7 @@ class Game {
         this.enemies.forEach(e => e.draw(this.ctx));
         this.projectiles.forEach(p => p.draw(this.ctx));
         this.particles.forEach(p => p.draw(this.ctx));
+        this.stationDrones.forEach(d => d.draw(this.ctx));
 
         this.ctx.font = "bold 14px Arial";
         this.ctx.textAlign = "center";
@@ -812,7 +951,7 @@ class Game {
             this.ctx.globalAlpha = 1.0;
         });
 
-        if (this.hoverTile && this.selectedTowerType && this.isPlaying) {
+        if (this.hoverTile && this.selectedTowerType && this.isPlaying && !this.isWaveActive) {
             const tx = this.hoverTile.c * TILE_SIZE;
             const ty = this.hoverTile.r * TILE_SIZE;
 
@@ -844,6 +983,11 @@ class Game {
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(t.x - 20, t.y - 20, 40, 40);
         }
+
+        if (this.isWaveActive) {
+            this.ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+            this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
     }
 
     loop() {
@@ -871,7 +1015,7 @@ class Game {
     }
 
     handleMouseClick() {
-        if (!this.isPlaying || !this.hoverTile) return;
+        if (!this.isPlaying || !this.hoverTile || this.isWaveActive) return;
 
         const {c, r} = this.hoverTile;
 
@@ -891,6 +1035,7 @@ class Game {
         if (this.selectedTowerType) {
             if (this.grid[r][c] !== 0) {
                 if(this.grid[r][c] === 3) this.showToast("Здесь небезопасно!");
+                if(this.grid[r][c] === 4) this.showToast("Выженная земля!");
                 else this.audio.error();
                 return;
             }
@@ -913,7 +1058,7 @@ class Game {
     }
 
     upgradeSelectedTower() {
-        if(!this.selectedTowerInstance) return;
+        if(!this.selectedTowerInstance || this.isWaveActive) return;
         const t = this.selectedTowerInstance;
         if(t.level >= 2) {
              this.showToast("Максимальный уровень!");
@@ -935,7 +1080,7 @@ class Game {
     }
 
     sellSelectedTower() {
-        if(!this.selectedTowerInstance) return;
+        if(!this.selectedTowerInstance || this.isWaveActive) return;
         const t = this.selectedTowerInstance;
 
         const refund = Math.floor(t.totalInvested * 0.5);
@@ -958,6 +1103,10 @@ class Game {
     }
 
     selectTower(type) {
+        if (this.isWaveActive) {
+            this.showToast("Нельзя во время волны!");
+            return;
+        }
         this.selectedTowerInstance = null;
         if (this.selectedTowerType === type) {
             this.selectedTowerType = null;
@@ -975,7 +1124,7 @@ class Game {
         const nextBtn = document.getElementById('next-wave-btn');
         nextBtn.style.opacity = this.isWaveActive ? "0.5" : "1";
         nextBtn.disabled = this.isWaveActive;
-        nextBtn.innerText = this.isWaveActive ? "ИДЕТ ВОЛНА..." : "▶ СТАРТ ВОЛНЫ";
+        nextBtn.innerText = this.isWaveActive ? "ИДЕТ ВОЛНА..." : "▶ СТАРТ";
 
         const buildPanel = document.getElementById('build-controls');
         const upgradePanel = document.getElementById('upgrade-controls');
@@ -1008,8 +1157,9 @@ class Game {
             buildPanel.style.display = 'flex';
             upgradePanel.style.display = 'none';
 
-            ['turret', 'sniper', 'blaster', 'artillery'].forEach(type => {
+            ['turret', 'sniper', 'blaster', 'artillery', 'launcher', 'station'].forEach(type => {
                 const btn = document.getElementById(`btn-${type}`);
+                if (!btn) return;
                 const cost = TOWERS[type].cost;
                 if (this.selectedTowerType === type) btn.classList.add('selected');
                 else btn.classList.remove('selected');
@@ -1052,9 +1202,17 @@ class Enemy {
         this.burnTimer = 0;
         this.invulnerable = false;
         this.invulnTimer = 0;
+        this.disabled = false;
+        this.disabledTimer = 0;
 
         this.baseX = baseX;
         this.baseY = baseY;
+
+        this.rocketTimer = 1500;
+        this.droneSpawner = 1200;
+        this.swarmSpawner = 300;
+        this.airBossTimer = 3600;
+        this.missileTimer = 1800;
 
         switch(type) {
             case 'swarm':
@@ -1062,35 +1220,35 @@ class Enemy {
                 this.maxHp = 15 * hpMult;
                 this.color = '#8e44ad';
                 this.radius = 6;
-                this.reward = 3;
+                this.reward = 1.5;
                 break;
             case 'fast':
                 this.baseSpeed = 3.0;
                 this.maxHp = 30 * hpMult;
                 this.color = '#f1c40f';
                 this.radius = 8;
-                this.reward = 8;
+                this.reward = 4;
                 break;
             case 'tank':
                 this.baseSpeed = 1.0;
                 this.maxHp = 150 * hpMult;
                 this.color = '#2980b9';
                 this.radius = 14;
-                this.reward = 20;
+                this.reward = 10;
                 break;
             case 'armored':
                 this.baseSpeed = 0.8;
                 this.maxHp = 300 * hpMult;
                 this.color = '#1e8449';
                 this.radius = 16;
-                this.reward = 35;
+                this.reward = 17.5;
                 break;
             case 'drone':
                 this.baseSpeed = 2.0;
                 this.maxHp = 40 * hpMult;
                 this.color = '#34495e';
                 this.radius = 8;
-                this.reward = 15;
+                this.reward = 7.5;
                 this.canBeTargetedBy = ['sniper'];
                 break;
             case 'buffer':
@@ -1098,27 +1256,42 @@ class Enemy {
                 this.maxHp = 100 * hpMult;
                 this.color = '#2ecc71';
                 this.radius = 12;
-                this.reward = 25;
+                this.reward = 12.5;
                 break;
             case 'exploder':
                 this.baseSpeed = 1.2;
                 this.maxHp = 80 * hpMult;
                 this.color = '#c0392b';
                 this.radius = 12;
-                this.reward = 30;
+                this.reward = 15;
+                break;
+            case 'disruptor':
+                this.baseSpeed = 1.5;
+                this.maxHp = 120 * hpMult;
+                this.color = '#3498db';
+                this.radius = 11;
+                this.reward = 20;
+                this.ballTimer = 0;
                 break;
             case 'boss':
                 this.baseSpeed = 0.5;
                 this.maxHp = 1500 * hpMult;
                 this.color = '#2c3e50';
                 this.radius = 22;
-                this.reward = 500;
+                this.reward = 250;
                 break;
             case 'superboss':
-                this.baseSpeed = 0.4;
-                this.maxHp = 4000 * hpMult;
+                this.baseSpeed = 0.3;
+                this.maxHp = 6000 * hpMult;
                 this.color = '#17202a';
-                this.radius = 28;
+                this.radius = 35;
+                this.reward = 1000;
+                break;
+            case 'airBoss':
+                this.baseSpeed = 1.5;
+                this.maxHp = 2000 * hpMult;
+                this.color = '#ff6b6b';
+                this.radius = 30;
                 this.reward = 2000;
                 break;
             default:
@@ -1126,7 +1299,7 @@ class Enemy {
                 this.maxHp = 50 * hpMult;
                 this.color = '#c0392b';
                 this.radius = 10;
-                this.reward = 5;
+                this.reward = 2.5;
         }
         this.hp = this.maxHp;
         this.speed = this.baseSpeed;
@@ -1142,12 +1315,19 @@ class Enemy {
             this.invulnerable = false;
         }
 
+        if (this.disabledTimer > 0) {
+            this.disabled = true;
+            this.disabledTimer--;
+        } else {
+            this.disabled = false;
+        }
+
         if (this.type === 'buffer') {
             allEnemies.forEach(other => {
                 if (other !== this && other.active) {
                     const d = Math.sqrt((this.x - other.x)**2 + (this.y - other.y)**2);
                     if (d < 100) {
-                         other.invulnTimer = 10;
+                         other.invulnTimer = 600;
                     }
                 }
             });
@@ -1165,7 +1345,21 @@ class Enemy {
             this.burnTimer--;
         }
 
-        if (this.type === 'drone') {
+        if (this.type === 'disruptor' && this.active) {
+            this.ballTimer++;
+            if (this.ballTimer % 300 === 0) {
+                this.ballTimer = 0;
+            }
+        }
+
+        if (this.type === 'airBoss') {
+            this.airBossTimer--;
+            if (this.airBossTimer <= 0) {
+                this.reachedBase = true;
+            }
+        }
+
+        if (this.type === 'drone' || this.type === 'airBoss') {
             let dx = this.baseX - this.x;
             let dy = this.baseY - this.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
@@ -1214,6 +1408,11 @@ class Enemy {
         this.burnTimer = 20;
     }
 
+    applyDisable(duration) {
+        if (this.type.includes('boss') || this.invulnerable) return;
+        this.disabledTimer = duration;
+    }
+
     takeDamage(amount) {
         if (this.invulnerable) return;
         this.hp -= amount;
@@ -1234,7 +1433,20 @@ class Enemy {
             ctx.stroke();
         }
 
-        if (this.type === 'drone') {
+        if (this.type === 'airBoss') {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#ff00ff";
+            ctx.stroke();
+            ctx.fillStyle = "white";
+            ctx.font = "32px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🚁", this.x, this.y);
+        }
+        else if (this.type === 'drone') {
             ctx.fillStyle = "rgba(0,0,0,0.3)";
             ctx.beginPath();
             ctx.arc(this.x + 5, this.y + 15, 6, 0, Math.PI*2);
@@ -1257,6 +1469,19 @@ class Enemy {
              ctx.textBaseline = "middle";
              ctx.fillText("💣", this.x, this.y);
         }
+        else if (this.type === 'disruptor') {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
+            ctx.fillStyle = "white";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("◆", this.x, this.y);
+        }
         else if (this.type.includes('boss')) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -1265,7 +1490,7 @@ class Enemy {
             ctx.strokeStyle = this.type === 'superboss' ? "#e74c3c" : "#c0392b";
             ctx.stroke();
             ctx.fillStyle = "white";
-            ctx.font = this.type === 'superboss' ? "24px Arial" : "16px Arial";
+            ctx.font = this.type === 'superboss' ? "28px Arial" : "20px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText("☠️", this.x, this.y);
@@ -1291,6 +1516,14 @@ class Enemy {
             ctx.stroke();
         }
 
+        if (this.disabled) {
+            ctx.strokeStyle = "#3498db";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + 6, 0, Math.PI*2);
+            ctx.stroke();
+        }
+
         if (this.slowTimer > 0) {
             ctx.fillStyle = "rgba(135, 206, 235, 0.5)";
             ctx.beginPath();
@@ -1306,7 +1539,7 @@ class Enemy {
         }
 
         const hpPct = Math.max(0, this.hp / this.maxHp);
-        const barWidth = this.type.includes('boss') ? 40 : 20;
+        const barWidth = this.type.includes('boss') ? 50 : 20;
 
         ctx.fillStyle = "red";
         ctx.fillRect(this.x - barWidth/2, this.y - this.radius - 8, barWidth, 4);
@@ -1332,9 +1565,12 @@ class Tower {
         this.projSpeed = config.projectileSpeed;
         this.isAOE = config.type === 'aoe';
         this.isArtillery = config.type === 'artillery';
+        this.isLauncher = config.type === 'launcher';
+        this.isStation = config.type === 'station';
         this.angle = 0;
         this.animRecoil = 0;
         this.totalInvested = config.cost;
+        this.stationSpawner = 0;
     }
 
     upgrade(cost) {
@@ -1343,9 +1579,34 @@ class Tower {
         this.totalInvested += cost;
     }
 
-    update(enemies, projectiles, audio) {
+    update(enemies, projectiles, audio, game) {
         if (this.cooldown > 0) this.cooldown--;
         if (this.animRecoil > 0) this.animRecoil--;
+
+        if (this.isStation) {
+            this.stationSpawner++;
+            if (this.stationSpawner >= 900) {
+                this.stationSpawner = 0;
+                let drone = new StationDrone(this.x, this.y, this.level);
+                game.stationDrones.push(drone);
+            }
+        }
+
+        if (this.isLauncher) {
+            game.launcherAmmo++;
+            if (game.launcherAmmo >= 1800 && this.cooldown <= 0) {
+                game.launcherAmmo = 0;
+                for (let k = 0; k < 4; k++) {
+                    let angle = (Math.PI * 2 / 4) * k;
+                    let tx = this.x + Math.cos(angle) * 800;
+                    let ty = this.y + Math.sin(angle) * 800;
+                    projectiles.push(new LauncherProjectile(this.x, this.y, tx, ty, this.damage, {slowZone: this.level >= 2}));
+                }
+                audio.shoot('launcher');
+                this.cooldown = this.cooldownMax;
+            }
+            return;
+        }
 
         let target = null;
         let minDist = Infinity;
@@ -1377,7 +1638,13 @@ class Tower {
                 if (this.typeKey === 'artillery' && this.level >= 2) special.napalm = true;
 
                 if (this.isArtillery) {
-                    projectiles.push(new ArtilleryProjectile(this.x, this.y, target.x, target.y, this.damage, special));
+                    let offsetX = (Math.random() - 0.5) * 200;
+                    let offsetY = (Math.random() - 0.5) * 200;
+                    if (Math.random() > 0.7) {
+                        offsetX = (Math.random() - 0.5) * 400;
+                        offsetY = (Math.random() - 0.5) * 400;
+                    }
+                    projectiles.push(new ArtilleryProjectile(this.x, this.y, target.x + offsetX, target.y + offsetY, this.damage, special));
                 }
                 else if (this.typeKey === 'turret' && this.level >= 2) {
                     let offX = Math.cos(this.angle + Math.PI/2) * 5;
@@ -1402,6 +1669,14 @@ class Tower {
         ctx.strokeStyle = "#7f8c8d";
         ctx.lineWidth = 2;
         ctx.stroke();
+
+        if (isSelected) {
+            ctx.strokeStyle = "#f1c40f";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 18, 0, Math.PI * 2);
+            ctx.stroke();
+        }
 
         ctx.save();
         ctx.translate(this.x, this.y);
@@ -1448,6 +1723,16 @@ class Tower {
                  ctx.fillStyle = "#e67e22";
                  ctx.fillRect(-5, -5, 10, 10);
             }
+        } else if (this.typeKey === 'launcher') {
+            ctx.fillStyle = "#ff00ff";
+            ctx.fillRect(-10, -10, 20, 20);
+            ctx.fillStyle = "#ffff00";
+            ctx.beginPath(); ctx.arc(0, 5, 5, 0, Math.PI*2); ctx.fill();
+        } else if (this.typeKey === 'station') {
+            ctx.fillStyle = "#ffff00";
+            ctx.fillRect(-12, -12, 24, 24);
+            ctx.fillStyle = "#ff6600";
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
         }
 
         ctx.restore();
@@ -1466,6 +1751,7 @@ class Projectile {
         this.isAOE = isAOE;
         this.hit = false;
         this.outOfBounds = false;
+        this.type = 'normal';
 
         if (special.slow) this.color = "#3498db";
         if (special.instantKill) this.color = "#e74c3c";
@@ -1513,6 +1799,54 @@ class Projectile {
     }
 }
 
+class LauncherProjectile {
+    constructor(startX, startY, targetX, targetY, damage, special = {}) {
+        this.startX = startX;
+        this.startY = startY;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.x = startX;
+        this.y = startY;
+        this.damage = damage;
+        this.special = special;
+        this.progress = 0;
+        this.speed = 0.01;
+        this.arcHeight = 150;
+        this.hit = false;
+        this.outOfBounds = false;
+        this.isAOE = true;
+        this.type = 'launcher';
+    }
+
+    update() {
+        this.progress += this.speed;
+        if (this.progress >= 1) {
+            this.progress = 1;
+            this.hit = true;
+            this.x = this.targetX;
+            this.y = this.targetY;
+            return;
+        }
+
+        this.x = this.startX + (this.targetX - this.startX) * this.progress;
+        this.y = this.startY + (this.targetY - this.startY) * this.progress;
+        this.z = 4 * this.arcHeight * this.progress * (1 - this.progress);
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = "rgba(255, 0, 255, 0.8)";
+        ctx.beginPath();
+        let visualY = this.y - this.z;
+        ctx.arc(this.x, visualY, 10, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ff00ff";
+        ctx.beginPath();
+        ctx.arc(this.x, visualY - 5, 4, 0, Math.PI*2);
+        ctx.fill();
+    }
+}
+
 class ArtilleryProjectile {
     constructor(startX, startY, targetX, targetY, damage, special = {}) {
         this.startX = startX;
@@ -1523,11 +1857,9 @@ class ArtilleryProjectile {
         this.y = startY;
         this.damage = damage;
         this.special = special;
-
         this.progress = 0;
         this.speed = 0.025;
         this.arcHeight = 100;
-
         this.hit = false;
         this.outOfBounds = false;
         this.isAOE = true;
@@ -1545,7 +1877,6 @@ class ArtilleryProjectile {
 
         this.x = this.startX + (this.targetX - this.startX) * this.progress;
         this.y = this.startY + (this.targetY - this.startY) * this.progress;
-
         this.z = 4 * this.arcHeight * this.progress * (1 - this.progress);
     }
 
@@ -1569,19 +1900,62 @@ class ArtilleryProjectile {
     }
 }
 
+class AirMissile {
+    constructor(startX, startY, targetX, targetY, damage) {
+        this.x = startX;
+        this.y = startY;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.damage = damage;
+        this.speed = 3;
+        this.hit = false;
+        this.outOfBounds = false;
+        this.isAOE = false;
+    }
+
+    update() {
+        let dx = this.targetX - this.x;
+        let dy = this.targetY - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist < this.speed) {
+            this.hit = true;
+        } else {
+            this.x += (dx / dist) * this.speed;
+            this.y += (dy / dist) * this.speed;
+        }
+
+        if (this.x < 0 || this.x > CANVAS_WIDTH || this.y < 0 || this.y > CANVAS_HEIGHT) {
+            this.outOfBounds = true;
+        }
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = "#ff0000";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffff00";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
 class NapalmZone {
-    constructor(x, y) {
+    constructor(x, y, color = "#e67e22", slowZone = false) {
         this.x = x;
         this.y = y;
         this.radius = 40;
         this.life = 180;
+        this.color = color;
+        this.slowZone = slowZone;
     }
     update() {
         this.life--;
     }
     draw(ctx) {
         ctx.globalAlpha = 0.4;
-        ctx.fillStyle = "#e67e22";
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
         ctx.fill();
@@ -1613,6 +1987,54 @@ class Particle {
         ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1.0;
+    }
+}
+
+class StationDrone {
+    constructor(x, y, level) {
+        this.x = x;
+        this.y = y;
+        this.startX = x;
+        this.startY = y;
+        this.level = level;
+        this.targetEnemy = null;
+        this.speed = 5;
+        this.shouldReturn = false;
+        this.type = level >= 2 ? 'shooter' : 'kamikaze';
+        this.ammo = 0;
+        this.shootCooldown = 0;
+    }
+
+    update() {
+        if (this.shouldReturn) return;
+
+        if (this.type === 'kamikaze') {
+            // Find nearest enemy and explode
+            this.shouldReturn = true;
+        } else if (this.type === 'shooter') {
+            // Find enemies and shoot them
+            this.shootCooldown--;
+        }
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = "#2ecc71";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (this.type === 'kamikaze') {
+            ctx.fillStyle = "#ff0000";
+            ctx.font = "12px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("💣", this.x, this.y);
+        } else {
+            ctx.fillStyle = "#ffff00";
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }
 
