@@ -147,6 +147,11 @@
             background: linear-gradient(135deg, #ff6b00, #ffaa00);
             border-color: #ff00ff;
             box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+            display: none;
+        }
+
+        .tower-btn.secret.unlocked {
+            display: flex;
         }
 
         .tower-icon {
@@ -531,6 +536,8 @@ class Game {
         this.burnedZones = [];
         this.launcherAmmo = 0;
         this.stationDrones = [];
+        this.launcherUnlocked = false;
+        this.stationUnlocked = false;
 
         this.grid = [];
         this.buildMap();
@@ -540,6 +547,8 @@ class Game {
         this.hoverTile = null;
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('boss-warning').style.display = 'none';
+        document.getElementById('btn-launcher').classList.remove('unlocked');
+        document.getElementById('btn-station').classList.remove('unlocked');
         this.updateUI();
     }
 
@@ -837,10 +846,14 @@ class Game {
                     if (e.type === 'superboss') {
                         this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: РАКЕТНИЦА!");
                         this.createParticles(e.x, e.y, '#ff00ff', 100);
+                        this.launcherUnlocked = true;
+                        document.getElementById('btn-launcher').classList.add('unlocked');
                     }
                     if (e.type === 'airBoss') {
                         this.showToast("⭐ ПОЛУЧЕНА СЕКРЕТНАЯ БАШНЯ: СТАНЦИЯ ДРОНОВ!");
                         this.createParticles(e.x, e.y, '#ffff00', 100);
+                        this.stationUnlocked = true;
+                        document.getElementById('btn-station').classList.add('unlocked');
                     }
                     if(e.type.includes('boss')) {
                         this.createParticles(e.x, e.y, '#e74c3c', 50);
