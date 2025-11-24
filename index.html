@@ -238,6 +238,55 @@
             white-space: nowrap;
         }
 
+        #menu-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            gap: 40px;
+        }
+
+        #menu-screen h1 {
+            font-size: 72px;
+            font-weight: bold;
+            color: #f1c40f;
+            text-shadow: 4px 4px 0px #e74c3c, 8px 8px 0px rgba(0,0,0,0.5);
+            letter-spacing: 4px;
+            margin: 0;
+            animation: pulse 2s infinite;
+        }
+
+        .play-btn {
+            padding: 20px 80px;
+            font-size: 32px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border: 3px solid #f1c40f;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(241, 196, 15, 0.5);
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
         #game-over-screen {
             position: absolute;
             top: 0;
@@ -309,6 +358,11 @@
 </head>
 <body>
 
+    <div id="menu-screen">
+        <h1>GameZ</h1>
+        <button class="play-btn" onclick="game.startGame()">▶ Play</button>
+    </div>
+
     <h1>
         <svg style="width:32px;height:32px;fill:var(--highlight)" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 3.5L18.5 20h-13L12 5.5zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>
         Pixel Defense: Hardcore Edition
@@ -321,7 +375,7 @@
         <div id="game-over-screen">
             <h2 id="go-title">ПОРАЖЕНИЕ</h2>
             <p id="go-stats" style="margin-bottom: 30px; font-size: 20px;">Вы продержались 5 волн</p>
-            <button class="btn-restart" onclick="game.init()">ИГРАТЬ СНОВА</button>
+            <button class="btn-restart" onclick="game.showMenu()">ВЕРНУТЬСЯ В МЕНЮ</button>
         </div>
     </div>
 
@@ -516,6 +570,18 @@ class Game {
 
         this.init();
         this.loop();
+        this.showMenu();
+    }
+
+    showMenu() {
+        document.getElementById('menu-screen').style.display = 'flex';
+        this.isPlaying = false;
+    }
+
+    startGame() {
+        document.getElementById('menu-screen').style.display = 'none';
+        this.isPlaying = true;
+        this.init();
     }
 
     init() {
