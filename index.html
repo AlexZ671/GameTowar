@@ -1279,6 +1279,7 @@ class Enemy {
         this.invulnTimer = 0;
         this.disabled = false;
         this.disabledTimer = 0;
+        this.damageReductionTimer = 0;
 
         this.baseX = baseX;
         this.baseY = baseY;
@@ -1397,12 +1398,16 @@ class Enemy {
             this.disabled = false;
         }
 
+        if (this.damageReductionTimer > 0) {
+            this.damageReductionTimer--;
+        }
+
         if (this.type === 'buffer') {
             allEnemies.forEach(other => {
                 if (other !== this && other.active) {
                     const d = Math.sqrt((this.x - other.x)**2 + (this.y - other.y)**2);
                     if (d < 100) {
-                         other.invulnTimer = 300;
+                         other.damageReductionTimer = 300;
                     }
                 }
             });
@@ -1490,6 +1495,12 @@ class Enemy {
 
     takeDamage(amount) {
         if (this.invulnerable) return;
+
+        // Если активен щит от buffer врага - урон на 50% меньше
+        if (this.damageReductionTimer > 0) {
+            amount *= 0.5;
+        }
+
         this.hp -= amount;
         if (this.hp <= 0) {
             this.active = false;
@@ -1702,9 +1713,23 @@ class Tower {
             let target = null;
             let minDist = Infinity;
 
-            // Для снайперов: сначала ищем дронов, потом обычных врагов
-            if (this.typeKey === 'sniper') {
-                // Первый проход: ищем дронов
+            // Первый проход: ищем Buffer врагов (приоритет для ВСЕХ башен)
+            for (const enemy of enemies) {
+                if (enemy.type === 'buffer') {
+                    let dx = enemy.x - this.x;
+                    let dy = enemy.y - this.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist <= this.range && dist < minDist) {
+                        minDist = dist;
+                        target = enemy;
+                    }
+                }
+            }
+
+            // Если buffer врагов нет, ищем дронов (для снайперов)
+            if (!target && this.typeKey === 'sniper') {
+                minDist = Infinity;
                 for (const enemy of enemies) {
                     if (enemy.type === 'drone') {
                         let dx = enemy.x - this.x;
@@ -1717,27 +1742,14 @@ class Tower {
                         }
                     }
                 }
+            }
 
-                // Если дронов нет, ищем обычных врагов
-                if (!target) {
-                    minDist = Infinity;
-                    for (const enemy of enemies) {
-                        if (enemy.type !== 'drone') {
-                            let dx = enemy.x - this.x;
-                            let dy = enemy.y - this.y;
-                            let dist = Math.sqrt(dx*dx + dy*dy);
-
-                            if (dist <= this.range && dist < minDist) {
-                                minDist = dist;
-                                target = enemy;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Для остальных башен: ищем обычных врагов, игнорируя дронов
+            // Если buffer и дроны не найдены, ищем остальных враг
+            if (!target) {
+                minDist = Infinity;
                 for (const enemy of enemies) {
-                    if (enemy.type === 'drone') continue;
+                    if (enemy.type === 'drone' || enemy.type === 'buffer') continue;
+                    if (enemy.type === 'drone' && this.typeKey !== 'sniper') continue;
 
                     let dx = enemy.x - this.x;
                     let dy = enemy.y - this.y;
