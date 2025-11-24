@@ -436,20 +436,12 @@
                 <span style="color: #ffd700">300$</span>
             </div>
 
-            <div class="tower-btn secret" id="btn-launcher" onclick="game.selectTower('launcher')">
-                <div class="tower-icon" style="background: #34495e; border-radius: 4px;">
-                    <svg viewBox="0 0 24 24">
-                        <!-- Черный квадрат контур -->
-                        <rect x="4" y="4" width="16" height="16" fill="none" stroke="#7f8c8d" stroke-width="1"/>
-                        <!-- 4 белые ракеты (видны на сером фоне) -->
-                        <circle cx="8" cy="8" r="2.5" fill="white"/>
-                        <circle cx="16" cy="8" r="2.5" fill="white"/>
-                        <circle cx="8" cy="16" r="2.5" fill="white"/>
-                        <circle cx="16" cy="16" r="2.5" fill="white"/>
-                    </svg>
+            <div class="tower-btn" id="btn-miner" onclick="game.selectTower('miner')">
+                <div class="tower-icon" style="background: #95a5a6; border-radius: 4px;">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L8 8h-6v12h16V8h-6L12 2zm0 4l2 4h-4l2-4zm-3 6h6v4h-6v-4z" fill="white"/></svg>
                 </div>
-                <span>Ракетница</span>
-                <span style="color: #ffd700">800$</span>
+                <span>Минёр</span>
+                <span style="color: #ffd700">250$</span>
             </div>
 
             <button onclick="game.startNextWave()" id="next-wave-btn" style="padding: 5px 10px; background: #2ecc71; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; font-size: 12px; box-shadow: 0 4px 0 #27ae60; transition: all 0.1s; width: 80px;">
@@ -547,12 +539,11 @@ const COLS = CANVAS_WIDTH / TILE_SIZE;
 const ROWS = CANVAS_HEIGHT / TILE_SIZE;
 
 const TOWERS = {
-    turret: { name: "Турель", cost: 50, range: 120, damage: 20, cooldown: 40, color: '#34495e', projectileSpeed: 6, type: 'single', upgradeCost: 100, upgradeName: "Двойная Турель" },
-    sniper: { name: "Снайпер", cost: 120, range: 300, damage: 100, cooldown: 120, color: '#8e44ad', projectileSpeed: 15, type: 'single', upgradeCost: 250, upgradeName: "Киллер" },
-    blaster: { name: "Бластер", cost: 200, range: 90, damage: 10, cooldown: 8, color: '#e67e22', projectileSpeed: 8, type: 'single', upgradeCost: 300, upgradeName: "Крио" },
-    artillery: { name: "Артиллерия", cost: 300, range: 275, damage: 80, cooldown: 600, color: '#c0392b', projectileSpeed: 4, type: 'artillery', upgradeCost: 400, upgradeName: "Напалм" },
-    launcher: { name: "Ракетница", cost: 800, range: 9999, damage: 500, cooldown: 15*60, color: '#1a1a1a', projectileSpeed: 5, type: 'launcher', upgradeCost: 1000, upgradeName: "Ракетница Альфа", secret: false },
-    station: { name: "Станция", cost: 1000, range: 200, damage: 150, cooldown: 900, color: '#ffff00', projectileSpeed: 5, type: 'station', upgradeCost: 5000, upgradeName: "Боевая Станция", secret: false }
+    turret: { name: "Турель", cost: 50, range: 120, damage: 20, cooldown: 40, color: '#34495e', projectileSpeed: 6, type: 'single', upgradeCost: 100, upgradeName: "Двойная Турель", upgrade3Name: "Тройная Турель" },
+    sniper: { name: "Снайпер", cost: 120, range: 300, damage: 100, cooldown: 120, color: '#8e44ad', projectileSpeed: 15, type: 'single', upgradeCost: 250, upgradeName: "Киллер", upgrade3Name: "Взрывной Снайпер" },
+    blaster: { name: "Бластер", cost: 200, range: 90, damage: 10, cooldown: 8, color: '#e67e22', projectileSpeed: 8, type: 'single', upgradeCost: 300, upgradeName: "Крио", upgrade3Name: "Крио Ускоритель" },
+    artillery: { name: "Артиллерия", cost: 300, range: 275, damage: 80, cooldown: 600, color: '#c0392b', projectileSpeed: 4, type: 'artillery', upgradeCost: 400, upgradeName: "Напалм", upgrade3Name: "Ракетница" },
+    miner: { name: "Минёр", cost: 250, range: 0, damage: 120, cooldown: 0, color: '#95a5a6', projectileSpeed: 0, type: 'miner', upgradeCost: 200, upgradeName: "Минёр Липкий", upgrade3Name: "Минёр Мощный" }
 };
 
 const PATH_NODES = [
