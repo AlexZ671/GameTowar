@@ -1336,7 +1336,7 @@ class Enemy {
                 if (other !== this && other.active) {
                     const d = Math.sqrt((this.x - other.x)**2 + (this.y - other.y)**2);
                     if (d < 100) {
-                         other.invulnTimer = 600;
+                         other.invulnTimer = 300;
                     }
                 }
             });
@@ -1636,16 +1636,51 @@ class Tower {
             let target = null;
             let minDist = Infinity;
 
-            for (const enemy of enemies) {
-                if (enemy.type === 'drone' && this.typeKey !== 'sniper') continue;
+            // Для снайперов: сначала ищем дронов, потом обычных врагов
+            if (this.typeKey === 'sniper') {
+                // Первый проход: ищем дронов
+                for (const enemy of enemies) {
+                    if (enemy.type === 'drone') {
+                        let dx = enemy.x - this.x;
+                        let dy = enemy.y - this.y;
+                        let dist = Math.sqrt(dx*dx + dy*dy);
 
-                let dx = enemy.x - this.x;
-                let dy = enemy.y - this.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist <= this.range && dist < minDist) {
+                            minDist = dist;
+                            target = enemy;
+                        }
+                    }
+                }
 
-                if (dist <= this.range && dist < minDist) {
-                    minDist = dist;
-                    target = enemy;
+                // Если дронов нет, ищем обычных врагов
+                if (!target) {
+                    minDist = Infinity;
+                    for (const enemy of enemies) {
+                        if (enemy.type !== 'drone') {
+                            let dx = enemy.x - this.x;
+                            let dy = enemy.y - this.y;
+                            let dist = Math.sqrt(dx*dx + dy*dy);
+
+                            if (dist <= this.range && dist < minDist) {
+                                minDist = dist;
+                                target = enemy;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Для остальных башен: ищем обычных врагов, игнорируя дронов
+                for (const enemy of enemies) {
+                    if (enemy.type === 'drone') continue;
+
+                    let dx = enemy.x - this.x;
+                    let dy = enemy.y - this.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist <= this.range && dist < minDist) {
+                        minDist = dist;
+                        target = enemy;
+                    }
                 }
             }
 
