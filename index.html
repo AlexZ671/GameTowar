@@ -363,43 +363,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        #speed-button-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            flex-shrink: 0;
-        }
-
-        #speed-btn {
-            padding: 8px 12px !important;
-            background: #3498db !important;
-            border: none !important;
-            border-radius: 5px !important;
-            cursor: pointer !important;
-            color: white !important;
-            font-weight: bold !important;
-            font-size: 13px !important;
-            box-shadow: 0 4px 0 #2980b9 !important;
-            transition: all 0.1s !important;
-            min-width: 70px !important;
-            max-width: 70px !important;
-            display: block !important;
-            height: auto !important;
-            text-align: center !important;
-            white-space: nowrap !important;
-        }
-
-        #speed-btn:hover {
-            transform: translateY(2px) !important;
-            box-shadow: 0 2px 0 #2980b9 !important;
-        }
-
-        #speed-btn:active {
-            transform: translateY(4px) !important;
-            box-shadow: 0 0px 0 #2980b9 !important;
-        }
-
     </style>
 </head>
 <body>
@@ -474,13 +437,6 @@
 
             <button onclick="game.startNextWave()" id="next-wave-btn" style="padding: 5px 10px; background: #2ecc71; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; font-size: 12px; box-shadow: 0 4px 0 #27ae60; transition: all 0.1s; width: 80px;">
                 ▶ СТАРТ
-            </button>
-        </div>
-
-        <!-- Speed Button (Separate) -->
-        <div id="speed-button-container">
-            <button onclick="game.toggleGameSpeed()" id="speed-btn">
-                ⚡ 1x
             </button>
         </div>
 
@@ -1345,16 +1301,6 @@ class Game {
         this.selectedTowerInstance = null;
         this.selectedTowerType = null;
         this.updateUI();
-    }
-
-    toggleGameSpeed() {
-        this.gameSpeed = this.gameSpeed === 1 ? 2 : 1;
-        const btn = document.getElementById('speed-btn');
-        if (btn) {
-            btn.innerText = this.gameSpeed === 2 ? '⚡ 2x' : '⚡ 1x';
-            btn.style.backgroundColor = this.gameSpeed === 2 ? '#e74c3c' : '#3498db';
-            btn.style.boxShadow = this.gameSpeed === 2 ? '0 4px 0 #c0392b' : '0 4px 0 #2980b9';
-        }
     }
 
     selectTower(type) {
