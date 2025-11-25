@@ -820,18 +820,27 @@ class Game {
 
         this.waveQueue = [];
 
+        // Прогрессивное усложнение: после каждой 10-й волны
+        const completedTens = Math.floor(this.wave / 10);
+        const countMultiplier = Math.pow(2.5, completedTens);
+        const hpMultiplier = Math.pow(1.3, completedTens);
+
         if (this.wave % 10 === 0) {
             let bossNumber = this.wave / 10;
-            let bossHpMult = 1 + ((bossNumber - 1) * 0.1);
+            let bossHpMult = (1 + ((bossNumber - 1) * 0.1)) * hpMultiplier;
             this.showToast(`⚠️ БОСС #${bossNumber}!`);
             document.getElementById('boss-warning').style.display = 'inline';
             this.waveQueue.push({ type: 'boss', hpMult: bossHpMult });
-            for(let i=0; i<10; i++) this.waveQueue.push({ type: 'fast', hpMult: 1 + (this.wave * 0.2) });
+
+            const fastEnemiesCount = Math.floor(10 * countMultiplier);
+            for(let i=0; i<fastEnemiesCount; i++) {
+                this.waveQueue.push({ type: 'fast', hpMult: (1 + (this.wave * 0.2)) * hpMultiplier });
+            }
         } else {
             document.getElementById('boss-warning').style.display = 'none';
 
-            let baseCount = 16 + Math.floor(this.wave * 5);
-            let hpMult = 1 + (this.wave * 0.3);
+            let baseCount = Math.floor((16 + Math.floor(this.wave * 5)) * countMultiplier);
+            let hpMult = (1 + (this.wave * 0.3)) * hpMultiplier;
 
             for (let i = 0; i < baseCount; i++) {
                 let r = Math.random();
