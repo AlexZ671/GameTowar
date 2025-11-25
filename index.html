@@ -1413,8 +1413,9 @@ class Enemy {
     constructor(path, type, hpMult, baseX, baseY) {
         this.path = path;
         this.pathIndex = 0;
-        this.x = path[0].x;
-        this.y = path[0].y;
+        // Добавляем случайное смещение, чтобы враги не шли гусеницей
+        this.x = path[0].x + (Math.random() - 0.5) * 40;
+        this.y = path[0].y + (Math.random() - 0.5) * 40;
         this.active = true;
         this.reachedBase = false;
         this.type = type;
