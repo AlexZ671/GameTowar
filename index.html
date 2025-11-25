@@ -940,7 +940,7 @@ class Game {
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
-            p.update();
+            p.update(this.gameSpeed);
             if (p.hit) {
                 if (p.isAOE) {
                     // Если это ракета босса - уничтожаем башню вместо врагов
@@ -2183,7 +2183,7 @@ class Projectile {
         if (special.napalm) this.color = "#d35400";
     }
 
-    update() {
+    update(gameSpeed = 1) {
         if (!this.isAOE && (!this.target || !this.target.active)) {
             this.hit = true;
             return;
@@ -2196,13 +2196,15 @@ class Projectile {
         let dy = ty - this.y;
         let dist = Math.sqrt(dx*dx + dy*dy);
 
-        if (dist < this.speed) {
+        const effectiveSpeed = this.speed * gameSpeed;
+
+        if (dist < effectiveSpeed) {
             this.x = tx;
             this.y = ty;
             this.hit = true;
         } else {
-            this.x += (dx / dist) * this.speed;
-            this.y += (dy / dist) * this.speed;
+            this.x += (dx / dist) * effectiveSpeed;
+            this.y += (dy / dist) * effectiveSpeed;
         }
 
         if (this.x < 0 || this.x > CANVAS_WIDTH || this.y < 0 || this.y > CANVAS_HEIGHT) {
@@ -2243,8 +2245,8 @@ class LauncherProjectile {
         this.type = 'launcher';
     }
 
-    update() {
-        this.progress += this.speed;
+    update(gameSpeed = 1) {
+        this.progress += this.speed * gameSpeed;
         if (this.progress >= 1) {
             this.progress = 1;
             this.hit = true;
@@ -2290,8 +2292,8 @@ class ArtilleryProjectile {
         this.isAOE = true;
     }
 
-    update() {
-        this.progress += this.speed;
+    update(gameSpeed = 1) {
+        this.progress += this.speed * gameSpeed;
         if (this.progress >= 1) {
             this.progress = 1;
             this.hit = true;
