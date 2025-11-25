@@ -1588,7 +1588,7 @@ class Enemy {
         }
 
         if (this.burnTimer > 0) {
-            this.takeDamage(0.2);
+            this.takeDamage(1.5); // Достойный урон от напалма
             this.burnTimer--;
         }
 
@@ -1648,7 +1648,7 @@ class Enemy {
 
     applyBurn() {
         if (this.invulnerable) return;
-        this.burnTimer = 20;
+        this.burnTimer = 60; // Дольше горит
     }
 
     applyDisable(duration) {
@@ -2326,8 +2326,8 @@ class NapalmZone {
     constructor(x, y, color = "#e67e22", slowZone = false) {
         this.x = x;
         this.y = y;
-        this.radius = 40;
-        this.life = 180;
+        this.radius = slowZone ? 40 : 80; // 100% больше для напалма
+        this.life = slowZone ? 180 : 300; // 5 секунд для напалма
         this.color = color;
         this.slowZone = slowZone;
     }
