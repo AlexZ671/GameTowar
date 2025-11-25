@@ -936,7 +936,7 @@ class Game {
             }
         }
 
-        this.towers.forEach(t => t.update(this.enemies, this.projectiles, this.audio, this));
+        this.towers.forEach(t => t.update(this.enemies, this.projectiles, this.audio, this, this.gameSpeed));
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
@@ -1823,12 +1823,15 @@ class Tower {
         this.totalInvested += cost;
     }
 
-    update(enemies, projectiles, audio, game) {
+    update(enemies, projectiles, audio, game, gameSpeed = 1) {
         // Blaster Level 3: Apply rush stacks to cooldown reduction
         let cooldownReduction = 1;
         if (this.typeKey === 'blaster' && this.level === 3 && this.blasterRushStacks > 0) {
             cooldownReduction = 1 + (this.blasterRushStacks * 0.0125); // +1.25% per stack
         }
+
+        // Apply gameSpeed to cooldown reduction
+        cooldownReduction *= gameSpeed;
 
         if (this.cooldown > 0) this.cooldown -= cooldownReduction;
         if (this.animRecoil > 0) this.animRecoil--;
@@ -1836,7 +1839,7 @@ class Tower {
         if (this.isStation) {
             // Станция спаунит дронов только когда волна активна
             if (game.isWaveActive) {
-                this.stationSpawner++;
+                this.stationSpawner += gameSpeed;
                 if (this.stationSpawner >= 900) { // 15 секунд
                     this.stationSpawner = 0;
                     let drone = new StationDrone(this.x, this.y, this.level);
@@ -1860,7 +1863,7 @@ class Tower {
                 }
 
                 if (this.launcherRocketQueue > 0) {
-                    this.launcherRocketDelay++;
+                    this.launcherRocketDelay += gameSpeed;
                     if (this.launcherRocketDelay >= 60) {
                         this.launcherRocketDelay = 0;
 
