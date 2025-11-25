@@ -867,13 +867,22 @@ class Game {
 
         if (this.isWaveActive) {
             this.spawnTimer += this.gameSpeed;
-            let spawnRate = 25;
-            if (this.waveQueue[0] && this.waveQueue[0].type === 'swarm') spawnRate = 8;
-            if (this.waveQueue[0] && this.waveQueue[0].type === 'boss') spawnRate = 120;
+            let spawnRate = 3; // Быстрый спавн
+            let batchSize = 1; // Количество врагов за раз
+
+            if (this.waveQueue[0] && this.waveQueue[0].type === 'boss') {
+                spawnRate = 120;
+            } else if (this.waveQueue.length > 100) {
+                // Массовый спавн для больших волн
+                batchSize = Math.min(5, Math.floor(this.waveQueue.length / 20));
+            }
 
             if (this.spawnTimer > spawnRate && this.waveQueue.length > 0) {
-                const enemyData = this.waveQueue.shift();
-                this.enemies.push(new Enemy(this.waypoints, enemyData.type, enemyData.hpMult, this.baseX, this.baseY));
+                // Спавним batch врагов сразу
+                for (let i = 0; i < batchSize && this.waveQueue.length > 0; i++) {
+                    const enemyData = this.waveQueue.shift();
+                    this.enemies.push(new Enemy(this.waypoints, enemyData.type, enemyData.hpMult, this.baseX, this.baseY));
+                }
                 this.spawnTimer = 0;
             } else if (this.waveQueue.length === 0 && this.enemies.length === 0) {
                 this.isWaveActive = false;
