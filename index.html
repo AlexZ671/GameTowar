@@ -363,6 +363,43 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        #speed-button-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        #speed-btn {
+            padding: 8px 12px !important;
+            background: #3498db !important;
+            border: none !important;
+            border-radius: 5px !important;
+            cursor: pointer !important;
+            color: white !important;
+            font-weight: bold !important;
+            font-size: 13px !important;
+            box-shadow: 0 4px 0 #2980b9 !important;
+            transition: all 0.1s !important;
+            min-width: 70px !important;
+            max-width: 70px !important;
+            display: block !important;
+            height: auto !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+        }
+
+        #speed-btn:hover {
+            transform: translateY(2px) !important;
+            box-shadow: 0 2px 0 #2980b9 !important;
+        }
+
+        #speed-btn:active {
+            transform: translateY(4px) !important;
+            box-shadow: 0 0px 0 #2980b9 !important;
+        }
+
     </style>
 </head>
 <body>
@@ -440,6 +477,13 @@
             </button>
         </div>
 
+        <!-- Speed Button (Separate) -->
+        <div id="speed-button-container">
+            <button onclick="game.toggleGameSpeed()" id="speed-btn">
+                ⚡ 1x
+            </button>
+        </div>
+
         <div id="upgrade-controls">
             <div style="color: white; min-width: 80px;">
                 <div id="upg-title" style="font-weight: bold; font-size: 14px; color: #f1c40f;">Турель</div>
@@ -495,22 +539,125 @@ class SoundManager {
     }
 
     shoot(type) {
+        if (!this.enabled || !this.ctx) return;
+
         if (type === 'sniper') {
-            this.playTone(150, 'triangle', 0.3, 0.1, 'sniper');
-            this.playTone(100, 'sine', 0.3, 0.1, 'sniper_sub');
+            // Снайпер: чистый, острый "щелчок" с высокой частотой
+            const osc1 = this.ctx.createOscillator();
+            const gain1 = this.ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(280, this.ctx.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.12);
+            gain1.gain.setValueAtTime(0, this.ctx.currentTime);
+            gain1.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 0.02);
+            gain1.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+            osc1.connect(gain1);
+            gain1.connect(this.ctx.destination);
+            osc1.start();
+            osc1.stop(this.ctx.currentTime + 0.12);
+
+            // Второй слой для глубины
+            const osc2 = this.ctx.createOscillator();
+            const gain2 = this.ctx.createGain();
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(420, this.ctx.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(320, this.ctx.currentTime + 0.08);
+            gain2.gain.setValueAtTime(0, this.ctx.currentTime);
+            gain2.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.01);
+            gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+            osc2.connect(gain2);
+            gain2.connect(this.ctx.destination);
+            osc2.start();
+            osc2.stop(this.ctx.currentTime + 0.08);
         }
         else if (type === 'blaster') {
-            this.playTone(600, 'sine', 0.1, 0.05, 'blaster');
+            // Бластер: мягкий "вуш" с органичным звучанием
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.15);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1200, this.ctx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.15);
+            filter.Q.setValueAtTime(3, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(0, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.15);
         }
         else if (type === 'artillery') {
-             this.playTone(80, 'square', 0.5, 0.1, 'artillery');
+            // Артиллерия: глубокий, низкий "бум" с приятным звучанием
+            const osc1 = this.ctx.createOscillator();
+            const gain1 = this.ctx.createGain();
+
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(95, this.ctx.currentTime);
+            osc1.frequency.exponentialRampToValueAtTime(55, this.ctx.currentTime + 0.4);
+
+            gain1.gain.setValueAtTime(0, this.ctx.currentTime);
+            gain1.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 0.05);
+            gain1.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+            osc1.connect(gain1);
+            gain1.connect(this.ctx.destination);
+            osc1.start();
+            osc1.stop(this.ctx.currentTime + 0.4);
+
+            // Верхний слой для характера звука
+            const osc2 = this.ctx.createOscillator();
+            const gain2 = this.ctx.createGain();
+
+            osc2.type = 'sawtooth';
+            osc2.frequency.setValueAtTime(140, this.ctx.currentTime);
+            osc2.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.25);
+
+            gain2.gain.setValueAtTime(0, this.ctx.currentTime);
+            gain2.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.04);
+            gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+
+            osc2.connect(gain2);
+            gain2.connect(this.ctx.destination);
+            osc2.start();
+            osc2.stop(this.ctx.currentTime + 0.25);
         }
         else if (type === 'launcher') {
             // Уникальный звук ракетницы - мощный низкий звук
             this.playTone(150, 'sawtooth', 0.6, 0.2, 'launcher');
         }
         else {
-            this.playTone(300, 'triangle', 0.1, 0.05, 'turret');
+            // Турель: мягкий, приятный "плоп"
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.1);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.1);
+            filter.Q.setValueAtTime(2, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(0, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.1, this.ctx.currentTime + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.1);
         }
     }
     hit() { this.playTone(100, 'sine', 0.1, 0.05, 'hit'); }
@@ -591,6 +738,7 @@ class Game {
         this.floatingTexts = [];
         this.waveQueue = [];
         this.spawnTimer = 0;
+        this.gameSpeed = 1;
         this.burnedZones = [];
         this.launcherAmmo = 0;
         this.stationDrones = [];
@@ -753,7 +901,7 @@ class Game {
         }
 
         if (this.isWaveActive) {
-            this.spawnTimer++;
+            this.spawnTimer += this.gameSpeed;
             let spawnRate = 25;
             if (this.waveQueue[0] && this.waveQueue[0].type === 'swarm') spawnRate = 8;
             if (this.waveQueue[0] && this.waveQueue[0].type === 'boss') spawnRate = 120;
@@ -891,7 +1039,7 @@ class Game {
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
-            e.update(this.enemies);
+            e.update(this.enemies, this.gameSpeed);
 
             // Boss projectile attack: spawn 20 red balls every 5 seconds
             if (e.type === 'boss' && e.active) {
@@ -1190,6 +1338,16 @@ class Game {
         this.updateUI();
     }
 
+    toggleGameSpeed() {
+        this.gameSpeed = this.gameSpeed === 1 ? 2 : 1;
+        const btn = document.getElementById('speed-btn');
+        if (btn) {
+            btn.innerText = this.gameSpeed === 2 ? '⚡ 2x' : '⚡ 1x';
+            btn.style.backgroundColor = this.gameSpeed === 2 ? '#e74c3c' : '#3498db';
+            btn.style.boxShadow = this.gameSpeed === 2 ? '0 4px 0 #c0392b' : '0 4px 0 #2980b9';
+        }
+    }
+
     selectTower(type) {
         if (this.isWaveActive) {
             this.showToast("Нельзя во время волны!");
@@ -1381,7 +1539,7 @@ class Enemy {
         this.speed = this.baseSpeed;
     }
 
-    update(allEnemies) {
+    update(allEnemies, gameSpeed = 1) {
         if (!this.active) return;
 
         if (this.invulnTimer > 0) {
@@ -1437,14 +1595,15 @@ class Enemy {
             let dx = this.baseX - this.x;
             let dy = this.baseY - this.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
+            const effectiveSpeed = this.speed * gameSpeed;
 
-            if (dist < this.speed) {
+            if (dist < effectiveSpeed) {
                 this.x = this.baseX;
                 this.y = this.baseY;
                 this.reachedBase = true;
             } else {
-                this.x += (dx/dist) * this.speed;
-                this.y += (dy/dist) * this.speed;
+                this.x += (dx/dist) * effectiveSpeed;
+                this.y += (dy/dist) * effectiveSpeed;
             }
         }
         else {
@@ -1457,8 +1616,9 @@ class Enemy {
             let dx = target.x - this.x;
             let dy = target.y - this.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
+            const effectiveSpeed = this.speed * gameSpeed;
 
-            if (dist < this.speed) {
+            if (dist < effectiveSpeed) {
                 this.x = target.x;
                 this.y = target.y;
                 this.pathIndex++;
@@ -1466,8 +1626,8 @@ class Enemy {
                     this.reachedBase = true;
                 }
             } else {
-                this.x += (dx / dist) * this.speed;
-                this.y += (dy / dist) * this.speed;
+                this.x += (dx / dist) * effectiveSpeed;
+                this.y += (dy / dist) * effectiveSpeed;
             }
         }
     }
