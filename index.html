@@ -776,27 +776,47 @@ class Game {
 
         this.waveQueue = [];
 
-        // HP увеличивается на 10% каждую волну
-        const hpMult = Math.pow(1.1, this.wave - 1);
+        // HP увеличивается на 15% каждую волну (более ощутимо)
+        const hpMult = Math.pow(1.15, this.wave - 1);
 
         // Максимум 120 врагов за волну (1 минута при spawnRate = 30)
         const MAX_ENEMIES = 120;
 
         if (this.wave % 10 === 0) {
+            // БОСС ВОЛНА
             let bossNumber = this.wave / 10;
             this.showToast(`⚠️ БОСС #${bossNumber}!`);
             document.getElementById('boss-warning').style.display = 'inline';
             this.waveQueue.push({ type: 'boss', hpMult: hpMult });
 
-            // Добавляем врагов к боссу (не более MAX_ENEMIES)
             const fastEnemiesCount = Math.min(30, MAX_ENEMIES - 1);
             for(let i=0; i<fastEnemiesCount; i++) {
                 this.waveQueue.push({ type: 'fast', hpMult: hpMult });
             }
+        } else if (this.wave > 3 && this.wave % 5 === 3) {
+            // СПЕЦИАЛЬНАЯ ВОЛНА: ДРОНЫ (волны 3, 8, 13, 18, 23...)
+            document.getElementById('boss-warning').style.display = 'none';
+            this.showToast(`🚁 ВОЗДУШНАЯ АТАКА! (Волна ${this.wave})`);
+
+            let droneCount = Math.min(40 + Math.floor(this.wave * 2), MAX_ENEMIES);
+            for(let i=0; i<droneCount; i++) {
+                this.waveQueue.push({ type: 'drone', hpMult: hpMult });
+            }
+        } else if (this.wave > 5 && this.wave % 7 === 5) {
+            // СПЕЦИАЛЬНАЯ ВОЛНА: ТАНКИ (волны 5, 12, 19, 26...)
+            document.getElementById('boss-warning').style.display = 'none';
+            this.showToast(`🛡️ БРОНИРОВАННЫЙ КОНВОЙ! (Волна ${this.wave})`);
+
+            let heavyCount = Math.min(30 + Math.floor(this.wave * 1.5), MAX_ENEMIES);
+            for(let i=0; i<heavyCount; i++) {
+                // Чередуем tank и armored
+                let type = i % 2 === 0 ? 'tank' : 'armored';
+                this.waveQueue.push({ type: type, hpMult: hpMult });
+            }
         } else {
+            // ОБЫЧНАЯ ВОЛНА
             document.getElementById('boss-warning').style.display = 'none';
 
-            // Постепенное увеличение количества врагов, но не более MAX_ENEMIES
             let baseCount = Math.min(20 + Math.floor(this.wave * 3), MAX_ENEMIES);
 
             for (let i = 0; i < baseCount; i++) {
@@ -807,7 +827,6 @@ class Game {
                 if (this.wave > 5 && r > 0.7 && r <= 0.8) type = 'fast';
                 if (this.wave > 7 && r > 0.9) type = 'tank';
                 if (this.wave > 8 && r > 0.85 && r <= 0.9) type = 'armored';
-                if (this.wave > 6 && r > 0.95) type = 'drone';
                 if (this.wave > 10 && i % 15 === 0) type = 'buffer';
                 if (this.wave > 10 && Math.random() < 0.15 && (this.wave % 3 === 0)) type = 'disruptor';
 
@@ -1041,9 +1060,8 @@ class Game {
                 if (this.lives <= 0) this.gameOver();
             } else if (!e.active) {
                 if (e.hp <= 0) {
-                    // Награда увеличивается на 2.5% каждую волну
-                    const rewardMultiplier = 1 + (this.wave - 1) * 0.025;
-                    this.money += Math.floor(e.reward * 1.2 * rewardMultiplier);
+                    // Фиксированная награда - баланс сложности
+                    this.money += Math.floor(e.reward * 1.2);
 
                     // Blaster Level 3: Apply rush to nearby blasters when they kill enemies
                     for (const tower of this.towers) {
