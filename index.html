@@ -776,25 +776,26 @@ class Game {
 
         this.waveQueue = [];
 
-        // Новая система: жирные юниты вместо большого количества
+        // Прогрессивное усложнение: после каждой 10-й волны
         const completedTens = Math.floor(this.wave / 10);
-        const hpMultiplier = Math.pow(2, completedTens); // Каждые 10 волн HP удваивается
+        const countMultiplier = Math.pow(2.5, completedTens);
+        const hpMultiplier = Math.pow(1.3, completedTens);
 
         if (this.wave % 10 === 0) {
             let bossNumber = this.wave / 10;
             let bossHpMult = (1 + ((bossNumber - 1) * 0.1)) * hpMultiplier;
-            this.showToast(`⚠️ БОСС #${bossNumber}! Враги очень живучие!`);
+            this.showToast(`⚠️ БОСС #${bossNumber}!`);
             document.getElementById('boss-warning').style.display = 'inline';
             this.waveQueue.push({ type: 'boss', hpMult: bossHpMult });
 
-            // Нормальное количество врагов
-            for(let i=0; i<10; i++) {
+            const fastEnemiesCount = Math.floor(10 * countMultiplier);
+            for(let i=0; i<fastEnemiesCount; i++) {
                 this.waveQueue.push({ type: 'fast', hpMult: (1 + (this.wave * 0.2)) * hpMultiplier });
             }
         } else {
             document.getElementById('boss-warning').style.display = 'none';
 
-            let baseCount = 16 + Math.floor(this.wave * 3); // Линейный рост количества
+            let baseCount = Math.floor((16 + Math.floor(this.wave * 5)) * countMultiplier);
             let hpMult = (1 + (this.wave * 0.3)) * hpMultiplier;
 
             for (let i = 0; i < baseCount; i++) {
@@ -866,21 +867,27 @@ class Game {
 
         if (this.isWaveActive) {
             this.spawnTimer += this.gameSpeed;
-            let spawnRate = 35; // Увеличенный интервал - враги меньше кучатся
+            let spawnRate = 3; // Быстрый спавн
+            let batchSize = 1; // Количество врагов за раз
 
             if (this.waveQueue[0] && this.waveQueue[0].type === 'boss') {
                 spawnRate = 120;
+            } else if (this.waveQueue.length > 100) {
+                // Массовый спавн для больших волн
+                batchSize = Math.min(5, Math.floor(this.waveQueue.length / 20));
             }
 
             if (this.spawnTimer > spawnRate && this.waveQueue.length > 0) {
-                const enemyData = this.waveQueue.shift();
-                this.enemies.push(new Enemy(this.waypoints, enemyData.type, enemyData.hpMult, this.baseX, this.baseY));
+                // Спавним batch врагов сразу
+                for (let i = 0; i < batchSize && this.waveQueue.length > 0; i++) {
+                    const enemyData = this.waveQueue.shift();
+                    this.enemies.push(new Enemy(this.waypoints, enemyData.type, enemyData.hpMult, this.baseX, this.baseY));
+                }
                 this.spawnTimer = 0;
             } else if (this.waveQueue.length === 0 && this.enemies.length === 0) {
                 this.isWaveActive = false;
-                const moneyReward = this.wave > 10 ? 26 : 40; // 35% снижение после волны 10
-                this.showToast(`Волна пройдена! +$${moneyReward}`);
-                this.money += moneyReward;
+                this.showToast("Волна пройдена! +$40");
+                this.money += 40;
                 this.launcherAmmo = 0;
 
                 // Reset blaster rush stacks at wave end
@@ -1406,7 +1413,6 @@ class Enemy {
     constructor(path, type, hpMult, baseX, baseY) {
         this.path = path;
         this.pathIndex = 0;
-        // СТРОГО по центру дорожки, БЕЗ отклонений
         this.x = path[0].x;
         this.y = path[0].y;
         this.active = true;
@@ -1494,9 +1500,6 @@ class Enemy {
                 this.reward = 2.5;
         }
         this.hp = this.maxHp;
-        // Добавляем вариацию скорости ±15% для разнообразия
-        const speedVariation = 0.85 + Math.random() * 0.3; // От 0.85 до 1.15
-        this.baseSpeed = this.baseSpeed * speedVariation;
         this.speed = this.baseSpeed;
     }
 
@@ -1551,7 +1554,6 @@ class Enemy {
             }
         }
 
-        // УБРАНА вся система расталкивания - враги идут СТРОГО по пути
 
         if (this.type === 'drone') {
             let dx = this.baseX - this.x;
