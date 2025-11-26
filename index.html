@@ -1445,7 +1445,7 @@ class Enemy {
         this.invulnTimer = 0;
         this.disabled = false;
         this.disabledTimer = 0;
-        this.damageReductionTimer = 0;
+        this.poisonTimer = 0; // ДОТ от buffer юнита
 
         this.baseX = baseX;
         this.baseY = baseY;
@@ -1541,19 +1541,24 @@ class Enemy {
             this.disabled = false;
         }
 
-        if (this.damageReductionTimer > 0) {
-            this.damageReductionTimer--;
-        }
-
+        // Buffer юнит наносит ДОТ союзникам рядом
         if (this.type === 'buffer') {
             allEnemies.forEach(other => {
                 if (other !== this && other.active) {
                     const d = Math.sqrt((this.x - other.x)**2 + (this.y - other.y)**2);
                     if (d < 100) {
-                         other.damageReductionTimer = 300;
+                        // Устанавливаем/обновляем poisonTimer на 3 секунды (180 фреймов)
+                        other.poisonTimer = 180;
                     }
                 }
             });
+        }
+
+        // Обработка ДОТа от buffer
+        if (this.poisonTimer > 0) {
+            // Наносим урон каждый фрейм
+            this.takeDamage(0.5 * gameSpeed); // 0.5 урона за фрейм
+            this.poisonTimer--;
         }
 
         if (this.slowTimer > 0) {
@@ -1634,11 +1639,6 @@ class Enemy {
 
     takeDamage(amount) {
         if (this.invulnerable) return;
-
-        // Если активен щит от buffer врага - урон на 50% меньше
-        if (this.damageReductionTimer > 0) {
-            amount *= 0.5;
-        }
 
         this.hp -= amount;
         if (this.hp <= 0) {
@@ -1737,6 +1737,14 @@ class Enemy {
             ctx.fillStyle = "rgba(231, 76, 60, 0.7)";
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Визуальный эффект отравления от buffer
+        if (this.poisonTimer > 0) {
+            ctx.fillStyle = "rgba(46, 204, 113, 0.5)";
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
             ctx.fill();
         }
 
