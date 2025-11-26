@@ -1035,13 +1035,13 @@ class Game {
             const e = this.enemies[i];
             e.update(this.enemies, this.gameSpeed);
 
-            // Boss projectile attack: spawn 20 red balls every 5 seconds
+            // Boss projectile attack: spawn 5 red balls every 5 seconds
             if (e.type === 'boss' && e.active) {
                 e.projectileTimer++;
                 if (e.projectileTimer >= 300) { // 5 seconds at 60 FPS
-                    // Spawn 20 red projectiles in random directions
-                    for (let j = 0; j < 20; j++) {
-                        let angle = (Math.random() * Math.PI * 2);
+                    // Spawn 5 red projectiles равномерно по кругу
+                    for (let j = 0; j < 5; j++) {
+                        let angle = (j / 5) * Math.PI * 2; // Равномерное распределение по кругу
                         let targetX = e.x + Math.cos(angle) * 300;
                         let targetY = e.y + Math.sin(angle) * 300;
                         this.projectiles.push(new Projectile(e.x, e.y, {x: targetX, y: targetY}, 10, 5, '#e74c3c', {}, false));
