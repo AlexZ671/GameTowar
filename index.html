@@ -867,7 +867,7 @@ class Game {
 
         if (this.isWaveActive) {
             this.spawnTimer += this.gameSpeed;
-            let spawnRate = 3; // Быстрый спавн
+            let spawnRate = 18; // Оптимальный интервал между врагами
             let batchSize = 1; // Количество врагов за раз
 
             if (this.waveQueue[0] && this.waveQueue[0].type === 'boss') {
