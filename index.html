@@ -778,6 +778,7 @@ class Game {
 
         // HP увеличивается на 15% каждую волну (более ощутимо)
         const hpMult = Math.pow(1.15, this.wave - 1);
+        console.log(`Волна ${this.wave}: HP множитель = ${hpMult.toFixed(2)}x (${Math.round(hpMult * 100)}%)`);
 
         // Максимум 120 врагов за волну (1 минута при spawnRate = 30)
         const MAX_ENEMIES = 120;
@@ -796,7 +797,8 @@ class Game {
         } else if (this.wave > 3 && this.wave % 5 === 3) {
             // СПЕЦИАЛЬНАЯ ВОЛНА: ДРОНЫ (волны 3, 8, 13, 18, 23...)
             document.getElementById('boss-warning').style.display = 'none';
-            this.showToast(`🚁 ВОЗДУШНАЯ АТАКА! (Волна ${this.wave})`);
+            const hpPercent = Math.round(hpMult * 100);
+            this.showToast(`🚁 ВОЗДУШНАЯ АТАКА! | HP: ${hpPercent}%`);
 
             let droneCount = Math.min(40 + Math.floor(this.wave * 2), MAX_ENEMIES);
             for(let i=0; i<droneCount; i++) {
@@ -805,7 +807,8 @@ class Game {
         } else if (this.wave > 5 && this.wave % 7 === 5) {
             // СПЕЦИАЛЬНАЯ ВОЛНА: ТАНКИ (волны 5, 12, 19, 26...)
             document.getElementById('boss-warning').style.display = 'none';
-            this.showToast(`🛡️ БРОНИРОВАННЫЙ КОНВОЙ! (Волна ${this.wave})`);
+            const hpPercent = Math.round(hpMult * 100);
+            this.showToast(`🛡️ БРОНИРОВАННЫЙ КОНВОЙ! | HP: ${hpPercent}%`);
 
             let heavyCount = Math.min(30 + Math.floor(this.wave * 1.5), MAX_ENEMIES);
             for(let i=0; i<heavyCount; i++) {
@@ -833,7 +836,8 @@ class Game {
                 this.waveQueue.push({ type: type, hpMult: hpMult });
             }
 
-            this.showToast(`Волна ${this.wave}`);
+            const hpPercent = Math.round(hpMult * 100);
+            this.showToast(`Волна ${this.wave} | HP врагов: ${hpPercent}%`);
         }
 
         this.updateUI();
@@ -1047,6 +1051,46 @@ class Game {
                         this.projectiles.push(new Projectile(e.x, e.y, {x: targetX, y: targetY}, 10, 5, '#e74c3c', {}, false));
                     }
                     e.projectileTimer = 0;
+                }
+
+                // Boss enrage at 50% HP: shield + spawn 20 red minions
+                if (!e.bossEnrageTriggered && e.hp <= e.maxHp * 0.5) {
+                    e.bossEnrageTriggered = true;
+
+                    // Дать боссу щит на 3 секунды (180 фреймов)
+                    e.invulnTimer = 180;
+
+                    this.showToast("⚠️ БОСС ВЗБЕШЕН! Призыв подкрепления!");
+                    this.audio.explosion();
+                    this.createParticles(e.x, e.y, '#e74c3c', 30);
+
+                    // Спавн 20 красных юнитов со щитом на 5 секунд
+                    for (let j = 0; j < 20; j++) {
+                        // Спавним вокруг босса в случайных позициях
+                        let angle = (j / 20) * Math.PI * 2;
+                        let spawnDist = 80 + Math.random() * 40;
+                        let spawnX = e.x + Math.cos(angle) * spawnDist;
+                        let spawnY = e.y + Math.sin(angle) * spawnDist;
+
+                        // Находим ближайший waypoint для врага
+                        let closestWaypoint = 0;
+                        let minDist = Infinity;
+                        for (let k = 0; k < this.waypoints.length; k++) {
+                            let d = Math.sqrt((spawnX - this.waypoints[k].x)**2 + (spawnY - this.waypoints[k].y)**2);
+                            if (d < minDist) {
+                                minDist = d;
+                                closestWaypoint = k;
+                            }
+                        }
+
+                        let minion = new Enemy(this.waypoints, 'basic', 1, this.baseX, this.baseY);
+                        minion.x = spawnX;
+                        minion.y = spawnY;
+                        minion.pathIndex = Math.max(0, closestWaypoint - 1);
+                        minion.color = '#e74c3c'; // Красный цвет
+                        minion.invulnTimer = 300; // Щит на 5 секунд (300 фреймов)
+                        this.enemies.push(minion);
+                    }
                 }
             }
 
@@ -1512,6 +1556,7 @@ class Enemy {
                 this.radius = 22;
                 this.reward = 250;
                 this.projectileTimer = 0;
+                this.bossEnrageTriggered = false; // Флаг для активации способности при 50% HP
                 break;
             default:
                 this.baseSpeed = 1.8;
