@@ -778,7 +778,6 @@ class Game {
 
         // HP увеличивается на 15% каждую волну (более ощутимо)
         const hpMult = Math.pow(1.15, this.wave - 1);
-        console.log(`Волна ${this.wave}: HP множитель = ${hpMult.toFixed(2)}x (${Math.round(hpMult * 100)}%)`);
 
         // Максимум 120 врагов за волну (1 минута при spawnRate = 30)
         const MAX_ENEMIES = 120;
@@ -797,8 +796,7 @@ class Game {
         } else if (this.wave > 3 && this.wave % 5 === 3) {
             // СПЕЦИАЛЬНАЯ ВОЛНА: ДРОНЫ (волны 3, 8, 13, 18, 23...)
             document.getElementById('boss-warning').style.display = 'none';
-            const hpPercent = Math.round(hpMult * 100);
-            this.showToast(`🚁 ВОЗДУШНАЯ АТАКА! | HP: ${hpPercent}%`);
+            this.showToast(`🚁 ВОЗДУШНАЯ АТАКА! (Волна ${this.wave})`);
 
             let droneCount = Math.min(40 + Math.floor(this.wave * 2), MAX_ENEMIES);
             for(let i=0; i<droneCount; i++) {
@@ -807,8 +805,7 @@ class Game {
         } else if (this.wave > 5 && this.wave % 7 === 5) {
             // СПЕЦИАЛЬНАЯ ВОЛНА: ТАНКИ (волны 5, 12, 19, 26...)
             document.getElementById('boss-warning').style.display = 'none';
-            const hpPercent = Math.round(hpMult * 100);
-            this.showToast(`🛡️ БРОНИРОВАННЫЙ КОНВОЙ! | HP: ${hpPercent}%`);
+            this.showToast(`🛡️ БРОНИРОВАННЫЙ КОНВОЙ! (Волна ${this.wave})`);
 
             let heavyCount = Math.min(30 + Math.floor(this.wave * 1.5), MAX_ENEMIES);
             for(let i=0; i<heavyCount; i++) {
@@ -836,8 +833,7 @@ class Game {
                 this.waveQueue.push({ type: type, hpMult: hpMult });
             }
 
-            const hpPercent = Math.round(hpMult * 100);
-            this.showToast(`Волна ${this.wave} | HP врагов: ${hpPercent}%`);
+            this.showToast(`Волна ${this.wave}`);
         }
 
         this.updateUI();
@@ -1567,6 +1563,11 @@ class Enemy {
         }
         this.hp = this.maxHp;
         this.speed = this.baseSpeed;
+
+        // Отладка HP (будет видно в консоли браузера)
+        if (Math.random() < 0.05) { // Логируем только 5% врагов чтобы не спамить
+            console.log(`${this.type}: HP = ${this.hp.toFixed(0)} (mult: ${hpMult.toFixed(2)}x)`);
+        }
     }
 
     update(allEnemies, gameSpeed = 1) {
