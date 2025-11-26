@@ -1406,9 +1406,9 @@ class Enemy {
     constructor(path, type, hpMult, baseX, baseY) {
         this.path = path;
         this.pathIndex = 0;
-        // Добавляем небольшое случайное смещение (±15px)
-        this.x = path[0].x + (Math.random() - 0.5) * 30;
-        this.y = path[0].y + (Math.random() - 0.5) * 30;
+        // СТРОГО по центру дорожки, БЕЗ отклонений
+        this.x = path[0].x;
+        this.y = path[0].y;
         this.active = true;
         this.reachedBase = false;
         this.type = type;
@@ -1551,53 +1551,7 @@ class Enemy {
             }
         }
 
-        // Система расталкивания врагов - предотвращает кучность
-        let separationX = 0;
-        let separationY = 0;
-        const separationRadius = this.radius * 2.5; // Радиус расталкивания
-
-        for (const other of allEnemies) {
-            if (other === this || !other.active) continue;
-
-            const dx = this.x - other.x;
-            const dy = this.y - other.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Если враги слишком близко - расталкиваем
-            if (distance < separationRadius && distance > 0) {
-                const force = (separationRadius - distance) / separationRadius;
-                separationX += (dx / distance) * force * 1.0; // Уменьшена сила
-                separationY += (dy / distance) * force * 1.0;
-            }
-        }
-
-        // Применяем силу расталкивания с ограничением
-        this.x += separationX;
-        this.y += separationY;
-
-        // Ограничение отклонения от дорожки (держим врагов на пути)
-        if (this.type !== 'drone' && this.pathIndex + 1 < this.path.length) {
-            const currentWaypoint = this.path[this.pathIndex];
-            const nextWaypoint = this.path[this.pathIndex + 1];
-            const pathWidth = 40; // TILE_SIZE
-
-            // Определяем направление движения
-            if (Math.abs(nextWaypoint.x - currentWaypoint.x) > Math.abs(nextWaypoint.y - currentWaypoint.y)) {
-                // Горизонтальное движение - ограничиваем Y
-                const centerY = currentWaypoint.y;
-                const maxDeviation = pathWidth * 0.8;
-                if (Math.abs(this.y - centerY) > maxDeviation) {
-                    this.y = centerY + Math.sign(this.y - centerY) * maxDeviation;
-                }
-            } else {
-                // Вертикальное движение - ограничиваем X
-                const centerX = currentWaypoint.x;
-                const maxDeviation = pathWidth * 0.8;
-                if (Math.abs(this.x - centerX) > maxDeviation) {
-                    this.x = centerX + Math.sign(this.x - centerX) * maxDeviation;
-                }
-            }
-        }
+        // УБРАНА вся система расталкивания - враги идут СТРОГО по пути
 
         if (this.type === 'drone') {
             let dx = this.baseX - this.x;
